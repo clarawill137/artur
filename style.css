@@ -356,6 +356,143 @@
 #ar-app .ar-toast.warning { border-color: var(--warn); color: var(--warn); }
 #ar-app.skin-paper .ar-toast { background: #f4ead0; color: #1f170c; border-color: #8d7b5c; }
 
+/* ═════════ личные дела ═════════ */
+
+#ar-app .ar-dcard { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; padding: 22px 8px 10px; text-align: center; border: 1px solid var(--line); border-radius: 4px; background: var(--bg2); }
+#ar-app .ar-dcard:active { transform: scale(.985); }
+#ar-app .ar-dcard .ds-no { position: absolute; top: 6px; right: 8px; color: var(--bad); font: 600 10.5px var(--mono); letter-spacing: .04em; }
+#ar-app .ar-dcard .ds-pic { position: relative; width: 78%; max-width: 128px; aspect-ratio: 4 / 5; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--line2); background: var(--bg3); }
+#ar-app .ar-dcard .ds-pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: saturate(.75) contrast(1.05); }
+#ar-app .ar-dcard .ds-pic i { color: var(--hi); font: 600 26px var(--mono); font-style: normal; }
+#ar-app .ar-dcard .ds-mini { position: absolute; left: -6%; right: -6%; top: 42%; z-index: 2; padding: 2px 0; transform: rotate(-14deg); border: 2px solid var(--bad); color: var(--bad); background: rgba(0, 0, 0, .35); font: 700 10.5px var(--mono); font-style: normal; text-transform: uppercase; letter-spacing: .1em; }
+#ar-app .ar-dcard .ds-code { margin-top: 4px; max-width: 100%; padding: 1px 8px; border: 1px solid var(--line2); color: var(--hi); font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#ar-app .ar-dcard b { margin-top: 4px; max-width: 100%; color: var(--hi); font-size: 13.5px; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+#ar-app .ar-dcard small { max-width: 100%; color: var(--dim); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#ar-app .ds-threat { display: inline-flex; gap: 4px; margin-top: 4px; }
+#ar-app .ds-threat i { width: 7px; height: 7px; border: 1px solid var(--line2); transform: rotate(45deg); }
+#ar-app .ds-threat i.on { background: var(--warn); border-color: var(--warn); }
+#ar-app .ar-dcard.paper { border: 1px solid #b9a67e; border-top: 3px solid #a8433a; border-radius: 2px; background: #f4ead0; color: #2a2216; font-family: 'Courier New', Courier, monospace; box-shadow: 0 2px 4px rgba(20, 12, 2, .35); }
+#ar-app .ar-dcard.paper .ds-no { color: #b0302a; font-family: inherit; }
+#ar-app .ar-dcard.paper .ds-pic { border-color: #3b2f1e; background: #d8ccb0; }
+#ar-app .ar-dcard.paper .ds-pic img { filter: grayscale(1) contrast(1.12) sepia(.18); }
+#ar-app .ar-dcard.paper .ds-pic i { color: #3b2f1e; font-family: inherit; }
+#ar-app .ar-dcard.paper .ds-mini { color: #b0302a; border-color: #b0302a; background: rgba(244, 234, 208, .55); font-family: inherit; }
+#ar-app .ar-dcard.paper .ds-code { border: 1.5px solid #2a2216; color: #1f170c; background: #fbf6e6; font-family: inherit; }
+#ar-app .ar-dcard.paper b { color: #1f170c; text-transform: uppercase; font-size: 12.5px; }
+#ar-app .ar-dcard.paper small { color: #6b5a3f; }
+#ar-app .ar-dcard.paper .ds-threat i { border-color: #6b5a3f; }
+#ar-app .ar-dcard.paper .ds-threat i.on { background: #a8433a; border-color: #a8433a; }
+
+/* само дело */
+#ar-app .ar-dossier { position: relative; margin: 0 0 6px; padding: 14px 14px 10px; overflow: hidden; font-size: 13.5px; line-height: 1.4; }
+#ar-app .ar-dossier .ds-head { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+#ar-app .ar-dossier .ds-agency { display: flex; align-items: center; gap: 8px; padding: 6px 8px; }
+#ar-app .ar-dossier .ds-agency > div { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+#ar-app .ar-dossier .ds-agency b { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; }
+#ar-app .ar-dossier .ds-agency span { font-size: 10px; letter-spacing: .04em; }
+#ar-app .ar-dossier .ds-no { font: 700 15px var(--mono); font-style: normal; letter-spacing: .04em; white-space: nowrap; }
+#ar-app .ar-dossier .ds-emb { width: 30px; height: 30px; flex: 0 0 30px; fill: none; stroke: currentColor; stroke-width: 1.4; }
+#ar-app .ar-dossier .ds-row { display: flex; align-items: flex-end; gap: 8px; min-width: 0; margin: 3px 0; }
+#ar-app .ar-dossier .ds-row > span { flex: 0 0 88px; font-size: 9.5px; line-height: 1.2; text-transform: uppercase; letter-spacing: .08em; text-align: right; padding-bottom: 2px; }
+#ar-app .ar-dossier .ds-row > u { flex: 1; min-width: 0; text-decoration: none; border-bottom: 1px solid; padding: 0 2px 1px; word-break: break-word; }
+#ar-app .ar-dossier .ds-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; }
+#ar-app .ar-dossier .ds-pair .ds-row > span { flex-basis: 46px; }
+#ar-app .ar-dossier .ds-name { display: flex; align-items: flex-end; gap: 8px; margin: 6px 0 8px; }
+#ar-app .ar-dossier .ds-name > span { flex: 0 0 88px; font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em; text-align: right; padding-bottom: 4px; }
+#ar-app .ar-dossier .ds-name > u { flex: 1; text-decoration: none; border-bottom: 1px solid; font-size: 17px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; line-height: 1.2; padding: 0 2px 2px; }
+#ar-app .ar-dossier .ds-mid { display: grid; grid-template-columns: minmax(0, 1fr) 118px; gap: 10px; align-items: start; margin: 6px 0 8px; }
+#ar-app .ar-dossier .ds-st { display: flex; flex-direction: column; min-width: 0; margin: 0 0 7px; }
+#ar-app .ar-dossier .ds-st > span { font-size: 9.5px; line-height: 1.2; text-transform: uppercase; letter-spacing: .08em; }
+#ar-app .ar-dossier .ds-st > u { text-decoration: none; border-bottom: 1px solid; padding: 1px 2px; min-height: 1.5em; word-break: break-word; }
+#ar-app .ar-dossier .ds-four { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 8px; margin: 0 0 6px; }
+#ar-app .ar-dossier.paper .ds-st > span { color: #4b3f2c; }
+#ar-app .ar-dossier.paper .ds-st > u { border-color: #5c4e36; color: #1a140b; }
+#ar-app .ar-dossier.holo .ds-st > span { color: var(--mute); font-family: var(--mono); }
+#ar-app .ar-dossier.holo .ds-st > u { color: var(--hi); border-bottom: 1px dotted var(--line2); }
+#ar-app .ar-dossier .ds-photo { display: flex; flex-direction: column; align-items: stretch; }
+#ar-app .ar-dossier .ds-pic { position: relative; display: grid; place-items: center; aspect-ratio: 3 / 4; overflow: hidden; border: 1px solid; cursor: pointer; }
+#ar-app .ar-dossier .ds-pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#ar-app .ar-dossier .ds-pic i { font: 700 30px var(--mono); font-style: normal; opacity: .6; }
+#ar-app .ar-dossier .ds-code { margin-top: 6px; padding: 3px 4px; border: 1.5px solid; text-align: center; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 12px; overflow-wrap: anywhere; }
+#ar-app .ar-dossier .ds-block { margin: 9px 0; }
+#ar-app .ar-dossier .ds-block > span { display: block; font-size: 9.5px; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 2px; }
+#ar-app .ar-dossier .ds-block p { white-space: pre-wrap; }
+#ar-app .ar-dossier .ds-blank { display: inline-block; min-width: 40%; height: 1em; }
+#ar-app .ar-dossier .ds-block .ds-blank { display: block; width: 92%; height: 1.2em; border-bottom: 1px solid; opacity: .5; }
+#ar-app .ar-dossier .ds-block .ds-blank + .ds-blank { width: 60%; }
+#ar-app .ar-dossier .ds-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 6px; border-top: 1px dashed; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; opacity: .75; }
+#ar-app .ar-dossier .ds-stamp { position: absolute; left: 50%; top: 47%; z-index: 3; transform: translate(-50%, -50%) rotate(-11deg); padding: 6px 18px; white-space: nowrap; font: 700 28px 'Courier New', Courier, monospace; text-transform: uppercase; letter-spacing: .12em; pointer-events: none; }
+#ar-app .ar-dossier .ds-stamp::before, #ar-app .ar-dossier .ds-stamp::after { content: ''; position: absolute; width: 16px; height: 22px; border: 3px solid currentColor; }
+#ar-app .ar-dossier .ds-stamp::before { left: 0; top: 0; border-right: 0; border-bottom: 0; }
+#ar-app .ar-dossier .ds-stamp::after { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+
+/* бумага: как карточки отдела кадров */
+#ar-app .ar-dossier.paper { color: #2a2216; font-family: 'Courier New', Courier, monospace; border-radius: 2px; text-shadow: none;
+    background: radial-gradient(120% 80% at 30% 20%, rgba(255, 255, 255, .35), transparent 60%), radial-gradient(90% 60% at 80% 90%, rgba(150, 110, 50, .14), transparent 70%), #efe4c6;
+    box-shadow: 0 1px 0 #fff6 inset, 0 3px 0 #d6c69e, 0 10px 28px rgba(0, 0, 0, .45); }
+#ar-app .ar-dossier.paper * { text-shadow: none; }
+#ar-app .ar-dossier.paper .ds-agency { background: #fbf8f0; border: 1px solid #c9bb98; box-shadow: 0 1px 2px rgba(0, 0, 0, .15); }
+#ar-app .ar-dossier.paper .ds-agency b { color: #1d2a44; }
+#ar-app .ar-dossier.paper .ds-agency span { color: #3d4a63; }
+#ar-app .ar-dossier.paper .ds-emb { color: #1d2a44; }
+#ar-app .ar-dossier.paper .ds-no { color: #b0302a; }
+#ar-app .ar-dossier.paper .ds-row > span, #ar-app .ar-dossier.paper .ds-name > span, #ar-app .ar-dossier.paper .ds-block > span { color: #4b3f2c; }
+#ar-app .ar-dossier.paper .ds-row > u, #ar-app .ar-dossier.paper .ds-name > u { border-color: #5c4e36; color: #1a140b; }
+#ar-app .ar-dossier.paper .ds-pic { border-color: #2a2216; background: #cfc3a6; box-shadow: 0 2px 4px rgba(0, 0, 0, .3); }
+#ar-app .ar-dossier.paper .ds-pic img { filter: grayscale(1) contrast(1.15) sepia(.15) brightness(.98); }
+#ar-app .ar-dossier.paper .ds-code { border-color: #1a140b; background: #fbf6e6; color: #1a140b; }
+#ar-app .ar-dossier.paper .ds-stamp { color: rgba(192, 40, 34, .82); mix-blend-mode: multiply; }
+#ar-app .ar-dossier.paper .ds-foot { border-color: #8d7b5c; color: #5c4e36; }
+
+/* голограмма */
+#ar-app .ar-dossier.holo { color: var(--c); border: 1px solid var(--line2); border-radius: 4px;
+    background: linear-gradient(var(--c), var(--c)) left top / 14px 1.5px no-repeat, linear-gradient(var(--c), var(--c)) left top / 1.5px 14px no-repeat, linear-gradient(var(--c), var(--c)) right bottom / 14px 1.5px no-repeat, linear-gradient(var(--c), var(--c)) right bottom / 1.5px 14px no-repeat, repeating-linear-gradient(0deg, rgba(140, 210, 255, .03) 0 1px, transparent 1px 3px), var(--bg2); }
+#ar-app .ar-dossier.holo .ds-agency { border: 1px solid var(--line2); background: var(--bg3); color: var(--hi); }
+#ar-app .ar-dossier.holo .ds-agency span { color: var(--dim); }
+#ar-app .ar-dossier.holo .ds-emb { color: var(--c); filter: drop-shadow(0 0 4px var(--glow)); }
+#ar-app .ar-dossier.holo .ds-no { color: var(--bad); text-shadow: 0 0 8px rgba(255, 95, 109, .5); }
+#ar-app .ar-dossier.holo .ds-row > span, #ar-app .ar-dossier.holo .ds-name > span, #ar-app .ar-dossier.holo .ds-block > span { color: var(--mute); font-family: var(--mono); }
+#ar-app .ar-dossier.holo .ds-row > u, #ar-app .ar-dossier.holo .ds-name > u { color: var(--hi); border-bottom: 1px dotted var(--line2); }
+#ar-app .ar-dossier.holo .ds-name > u { text-shadow: 0 0 10px var(--glow); font-family: var(--mono); }
+#ar-app .ar-dossier.holo .ds-block p { color: var(--hi); }
+#ar-app .ar-dossier.holo .ds-pic { border-color: var(--c); background: var(--bg3); box-shadow: 0 0 14px rgba(80, 180, 255, .2); }
+#ar-app .ar-dossier.holo .ds-pic img { filter: saturate(.6) contrast(1.08) brightness(.95); }
+#ar-app .ar-dossier.holo .ds-pic::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 0 45%, rgba(140, 220, 255, .35) 50%, transparent 55% 100%) 0 0 / 100% 220%, linear-gradient(rgba(60, 150, 255, .18), rgba(60, 150, 255, .18)); mix-blend-mode: screen; animation: ds-scan 3.2s linear infinite; }
+@keyframes ds-scan { from { background-position: 0 120%, 0 0; } to { background-position: 0 -120%, 0 0; } }
+#ar-app .ar-dossier.holo .ds-code { color: var(--hi); border-color: var(--c); background: var(--bg3); font-family: var(--mono); }
+#ar-app .ar-dossier.holo .ds-stamp { color: var(--bad); text-shadow: 0 0 12px rgba(255, 95, 109, .6); }
+#ar-app .ar-dossier.holo .ds-foot { border-color: var(--line2); color: var(--dim); font-family: var(--mono); }
+
+/* оценки — секретная записка */
+#ar-app .ar-memo2 { position: relative; border: 1px solid var(--line2); border-radius: 4px; background: var(--bg2); overflow: hidden; }
+#ar-app .ar-memo2 summary { list-style: none; display: grid; grid-template-columns: 1fr; gap: 2px; padding: 10px 12px; cursor: pointer; }
+#ar-app .ar-memo2 summary::-webkit-details-marker { display: none; }
+#ar-app .ar-memo2 .ds-cls { color: var(--bad); font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .16em; }
+#ar-app .ar-memo2 summary b { color: var(--hi); font-size: 15px; }
+#ar-app .ar-memo2 summary em { color: var(--dim); font-style: normal; font-size: 12px; }
+#ar-app .ar-memo2 .ds-memo-b { position: relative; padding: 4px 14px 2px; color: var(--hi); font-size: 14px; line-height: 1.5; }
+#ar-app .ar-memo2 .ds-memo-b > .ds-emb { position: absolute; left: 50%; top: 50%; width: 220px; height: 220px; margin: -110px 0 0 -110px; fill: none; stroke: currentColor; stroke-width: .5; opacity: .07; pointer-events: none; }
+#ar-app .ar-memo2 .ds-memo-h { margin-bottom: 8px; font: 12px var(--mono); }
+#ar-app .ar-memo2 .ds-memo-h span { color: var(--mute); text-transform: uppercase; letter-spacing: .08em; }
+#ar-app .ar-memo2 h4 { margin: 12px 0 3px; color: var(--c); font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: .12em; }
+#ar-app .ar-memo2 ul { margin: 0; padding-left: 18px; }
+#ar-app .ar-memo2 li { margin: 3px 0; }
+#ar-app .ar-memo2 .ds-verdict { margin: 14px 0 4px; padding-top: 8px; border-top: 1px dashed var(--line2); font-family: var(--mono); }
+#ar-app .ar-memo2 .ds-verdict span { color: var(--dim); }
+#ar-app .ar-memo2 .ds-verdict b { color: var(--hi); letter-spacing: .06em; }
+#ar-app .ar-memo2 .ar-row { padding: 0 10px; }
+#ar-app .ar-memo2.paper { border: 1px solid #cdbf9c; background: #f7f2e4; color: #1a140b; font-family: 'Courier New', Courier, monospace; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); }
+#ar-app .ar-memo2.paper * { text-shadow: none; }
+#ar-app .ar-memo2.paper .ds-cls { color: #b0302a; font-family: inherit; }
+#ar-app .ar-memo2.paper summary b, #ar-app .ar-memo2.paper .ds-memo-b { color: #1a140b; }
+#ar-app .ar-memo2.paper summary em, #ar-app .ar-memo2.paper .ds-memo-h span, #ar-app .ar-memo2.paper .ds-verdict span { color: #6b5a3f; }
+#ar-app .ar-memo2.paper h4 { color: #1d2a44; font-family: inherit; }
+#ar-app .ar-memo2.paper .ds-memo-h, #ar-app .ar-memo2.paper .ds-verdict { font-family: inherit; border-color: #8d7b5c; }
+#ar-app .ar-memo2.paper .ds-verdict b { color: #1a140b; }
+#ar-app .ar-memo2.paper .ds-memo-b > .ds-emb { opacity: .08; color: #1d2a44; }
+#ar-app .ar-memo2.paper .ar-btn { background: transparent; color: #1a140b; border-color: #8d7b5c; }
+#ar-app .ar-lg.chron { border-left-color: var(--warn); }
+
 /* крутилка */
 #ar-app .ar-spin { width: 14px; height: 14px; border: 2px solid var(--line2); border-top-color: var(--hi); border-radius: 50%; animation: ar-rot .8s linear infinite; display: inline-block; }
 

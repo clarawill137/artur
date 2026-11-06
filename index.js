@@ -3,6 +3,7 @@
 
 import * as C from './core.js';
 import * as U from './ui.js';
+import * as DS from './dossier.js';
 
 const ID = 'ar';
 let api = null;
@@ -21,7 +22,7 @@ function register() {
         init(a) { api = a; C.setApi(a); },
         prompt: (type) => C.promptNote(type),
         chron: () => C.chronHook(),
-        afterPost: (i, j) => { toastEvents(C.afterPost(i, j)); U.renderSoon(); },
+        afterPost: (i, j) => { toastEvents([...C.afterPost(i, j), ...DS.chronLog(j?.art?.dossier)]); U.renderSoon(); },
         sceneHtml: () => U.sceneHtml(),
     });
     return true;

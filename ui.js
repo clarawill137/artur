@@ -3,6 +3,7 @@
 
 import * as C from './core.js';
 import * as D from './data.js';
+import * as DS from './dossier.js';
 
 const esc = C.esc;
 const ui = { app: null, id: null, modal: null, dice: null, typed: new Set(), scroll: {}, busy: new Set(), filter: '' };
@@ -344,45 +345,122 @@ function opHtml(e) {
     <div class="ar-row end">${btn('delOp', `${ic('trash')} Удалить`, `data-id="${id}"`, 'ghost danger sm')}</div>`;
 }
 
-// ───────────── досье ─────────────
+// ───────────── досье: картотека и личное дело ─────────────
+
+const EMBLEM = `<svg class="ds-emb" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18"/><circle cx="20" cy="20" r="13.5"/><path d="M20 9.5l2.6 7.2h7.5l-6.1 4.5 2.4 7.3-6.4-4.6-6.4 4.6 2.4-7.3-6.1-4.5h7.5z"/></svg>`;
+const blank = (v, long = false) => (v ? esc(v) : `<i class="ds-blank${long ? ' long' : ''}"></i>`);
+const paperOn = (e) => e.skin === 'paper' || !!(C.cfg().filePaper || {})[e.id];
+const photoOf = (name, person, d) => { let src = d?.photo || person?.img || ''; if (!src) { try { src = C.A?.avatarUrl?.(name, true) || ''; } catch { /* */ } } return src; };
+const stampHtml = (d, cls = '') => { const st = DS.statusOf(d.status); return st[2] ? `<div class="ds-stamp ${cls}">${esc(st[2])}</div>` : ''; };
+const groupOfList = (x) => (x.main ? 'main' : x.circle ? 'circle' : 'other');
 
 function dossierHtml(e) {
     const list = C.dossierList();
     const f = C.norm(ui.filter);
-    const shown = f ? list.filter(x => C.norm(x.name).includes(f) || C.norm(x.person?.role).includes(f)) : list;
+    const groups = { main: 'Главные', circle: (D.ERA_GROUP[e.id] ? DS.agency(e).short : 'Круг'), other: 'Прочие' };
+    const counts = {};
+    for (const x of list) counts[groupOfList(x)] = (counts[groupOfList(x)] || 0) + 1;
+    const g = ui.dgroup && counts[ui.dgroup] ? ui.dgroup : '';
+    const shown = list.filter(x => (!g || groupOfList(x) === g) && (!f || C.norm(`${x.name} ${x.person?.role || ''} ${DS.rec(x.name, false)?.code || ''}`).includes(f)));
+    const paper = paperOn(e);
     return `${head(appLabel('dossier', e), btn('newPerson', ic('plus'), '', 'ico'))}
-    <input class="ar-search" data-aset="filter" placeholder="Поиск по имени или роли" value="${esc(ui.filter)}">
+    <input class="ar-search" data-aset="filter" placeholder="Имя, роль или позывной" value="${esc(ui.filter)}">
+    ${Object.keys(counts).length > 1 ? `<div class="ar-seg">${[['', `Все · ${list.length}`], ...Object.entries(groups).filter(([k]) => counts[k]).map(([k, l]) => [k, `${l} · ${counts[k]}`])].map(([k, l]) => `<button class="${k === g ? 'on' : ''}" data-aact="dsGroup" data-v="${k}">${esc(l)}</button>`).join('')}</div>` : ''}
     <div class="ar-grid">${shown.map(x => {
-        const d = C.dossierOf(x.name) || {};
-        const p = x.person;
-        return `<button class="ar-pcard" data-aact="go" data-app="dossier" data-id="${esc(x.name)}">${avatarOf(x.name, p)}
-            <b>${esc(x.name)}</b><span>${esc(d.post || p?.role || (x.main ? 'главный герой' : ''))}</span>
-            <em>${d.clear ? `допуск ${esc(d.clear)}` : ''}${p?.status && p.status !== 'active' ? ` · ${esc(p.status)}` : ''}</em>${bar(d.stress ?? 30, 'thin')}</button>`;
-    }).join('') || empty('Никого. Люди берутся из вкладки «Люди» в Life.')}</div>`;
+        const d = DS.rec(x.name, false) || DS.blankRec();
+        const src = photoOf(x.name, x.person, d);
+        const st = DS.statusOf(d.status);
+        return `<button class="ar-dcard${paper ? ' paper' : ''}${st[2] ? ' stamped' : ''}" data-aact="go" data-app="dossier" data-id="${esc(x.name)}">
+            <span class="ds-no">№ ${esc(DS.fileNo(x.name, e))}</span>
+            <span class="ds-pic">${src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<i>${esc(String(x.name).trim().charAt(0).toUpperCase())}</i>${st[2] ? `<em class="ds-mini">${esc(st[2])}</em>` : ''}</span>
+            <span class="ds-code">${esc(d.code || '—')}</span>
+            <b>${esc(d.fullname || x.name)}</b>
+            <small>${esc(d.post || x.person?.role || (x.main ? 'главный герой' : ''))}</small>
+            <span class="ds-threat">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= (d.threat || 1) ? 'on' : ''}"></i>`).join('')}</span>
+        </button>`;
+    }).join('') || empty('Никого. Люди берутся из вкладки «Люди» в Life, главные — из группы.')}</div>`;
 }
 
 function personHtml(e) {
     const name = ui.id;
     const x = C.dossierList().find(y => y.name === name) || { name };
     const p = x.person;
-    const d = C.dossierOf(name, true);
-    const k = (f) => `data-aset="dossier.${f}" data-who="${esc(name)}"`;
-    return `${head(name)}
-    <div class="ar-person">${avatarOf(name, p)}<div>
-        <b>${esc(name)}</b><span>${esc(p?.role || (x.main ? 'главный герой' : ''))}</span>
-        ${p?.group ? chip(p.group) : ''}</div></div>
-    ${p?.bio ? `<p class="ar-note">${esc(C.cut(p.bio, 420))}</p>` : ''}
-    ${p?.voice ? `<p class="ar-note mute">Манера: ${esc(C.cut(p.voice, 200))}</p>` : ''}
-    <div class="ar-form">
-        <label>Допуск<select ${k('clear')}>${D.CLEARANCE.map(c => `<option ${String(d.clear || '—') === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
-        <label>Назначение<input ${k('post')} value="${esc(d.post)}" placeholder="полевое звено, медблок, Маяк…"></label>
-        <label>Стресс · ${C.clamp(d.stress)}<input type="range" min="0" max="100" step="5" ${k('stress')} value="${C.clamp(d.stress)}"></label>
-        <label>Пометка Арта<textarea ${k('note')} rows="2" placeholder="что важно помнить">${esc(d.note)}</textarea></label>
-        <label>Психпрофиль<textarea ${k('psych')} rows="4">${esc(d.psych)}</textarea></label>
+    const d = DS.rec(name);
+    const ag = DS.agency(e);
+    const paper = paperOn(e);
+    const src = photoOf(name, p, d);
+    const st = DS.statusOf(d.status);
+    const nid = `data-id="${esc(name)}"`;
+    const row = (k, l, long) => `<div class="ds-row"><span>${esc(l)}</span><u>${blank(d[k], long)}</u></div>`;
+    const stack = (k, l) => `<div class="ds-st"><span>${esc(l)}</span><u>${blank(d[k])}</u></div>`;
+    const block = (k, l) => `<div class="ds-block"><span>${esc(l)}</span><p>${d[k] ? esc(d[k]) : '<i class="ds-blank long"></i><i class="ds-blank"></i>'}</p></div>`;
+    const empties = DS.FIELD_KEYS.filter(k => k !== 'status' && !d[k]).length;
+    const au = DS.authorsOf(e);
+    const cur = au.find(a => a[0] === ui.author) || au[0];
+    return `${head(name, `${e.skin === 'paper' ? '' : btn('dsPaper', ic(paper ? 'sparkles' : 'file'), `title="${paper ? 'Голограмма' : 'Бумага'}"`, 'ico')}${btn('dsEdit', ic('pencil'), nid, 'ico')}`)}
+    <article class="ar-dossier ${paper ? 'paper' : 'holo'}">
+        <header class="ds-head">
+            <div class="ds-agency">${EMBLEM}<div><b>${esc(ag.short)}</b><span>${esc(ag.long)}</span></div><em class="ds-no">№ ${esc(DS.fileNo(name, e))}</em></div>
+            <div class="ds-meta">${row('dob', 'Дата рожд.')}<div class="ds-row"><span>Статус</span><u>${esc(st[1])}</u></div>${row('clear', 'Допуск')}</div>
+        </header>
+        <div class="ds-name"><span>${esc(ag.who)}</span><u>${esc(d.fullname || name)}</u></div>
+        ${row('address', 'Последний адрес')}
+        <div class="ds-mid">
+            <div class="ds-fields">${stack('citizen', 'Гражданство')}${stack('birthplace', 'Место рождения')}${stack('langs', 'Языки')}${stack('marks', 'Особые приметы')}</div>
+            <div class="ds-photo">
+                <label class="ds-pic">${src ? `<img src="${esc(src)}" alt="" onerror="this.remove()">` : ''}<i>${esc(String(name).charAt(0).toUpperCase())}</i><input type="file" accept="image/*" data-aset="dsPhoto" data-who="${esc(name)}" hidden></label>
+                <div class="ds-code">${d.code ? `«${esc(d.code)}»` : '<i class="ds-blank"></i>'}</div>
+            </div>
+        </div>
+        <div class="ds-four">${stack('height', 'Рост')}${stack('weight', 'Вес')}${stack('hair', 'Волосы')}${stack('eyes', 'Глаза')}</div>
+        ${row('family', 'Семья', true)}${row('edu', 'Образование', true)}${row('service', 'Служба', true)}${row('post', 'Назначение', true)}
+        ${block('skills', 'Квалификация')}${block('powers', 'Способности')}${block('weak', 'Уязвимости')}${block('ties', 'Связи')}
+        ${stampHtml(d)}
+        <footer class="ds-foot"><span>${d.filled ? `заполнено ${esc(d.filled)}` : 'не заполнено'}</span><span>${esc(ag.short)} · ${esc(e.name)}</span></footer>
+    </article>
+    <div class="ar-row wrap">${btn('dsFill', busy(`fill:${name}`) ? '<span class="ar-spin"></span> Архив роется в лоре' : `${ic('book')} ${empties > 4 ? 'Заполнить из лора' : 'Дополнить из лора'}`, nid, empties > 4 ? 'primary' : 'ghost')}${empties <= 4 ? btn('dsRefill', `${ic('refresh')} Заново`, nid, 'ghost sm') : ''}${btn('dsScene', ic('zap'), `${nid} title="Дело на стол — в следующем ответе"`, 'ico ghost')}</div>
+    <p class="ar-mute small">Фото — тапни по снимку. Заполняет архивист по карточке, лорбукам и «Людям» на дату истории; заполненное руками не трогает.</p>
+
+    ${sec(e.artur ? 'Арт следит' : 'Пометки')}
+    <div class="ar-panel">
+        <div class="ar-kv"><div><span>Угроза</span><p>${pips(d.threat || 1, 'dsThreat', name)}</p></div><div><span>Статус</span><p>${esc(st[1])}</p></div></div>
+        <label class="ar-form one">Лояльность · ${C.clamp(d.loyalty)}<input type="range" min="0" max="100" step="5" data-aset="dossier.loyalty" data-who="${esc(name)}" value="${C.clamp(d.loyalty)}"></label>
+        <label class="ar-form one">Стресс · ${C.clamp(d.stress)}<input type="range" min="0" max="100" step="5" data-aset="dossier.stress" data-who="${esc(name)}" value="${C.clamp(d.stress)}"></label>
+        <label class="ar-form one">${e.artur ? 'Пометка Арта' : 'Пометка'}<textarea rows="2" data-aset="dossier.note" data-who="${esc(name)}" placeholder="что важно помнить">${esc(d.note)}</textarea></label>
     </div>
-    ${e.id === 'aim' ? `<div class="ar-row">${btn('zemo', busy(`zemo:${name}`) ? '<span class="ar-spin"></span> Земо пишет' : `${ic('feather')} Профиль от Земо`, `data-id="${esc(name)}"`, 'ghost')}</div>` : ''}
-    ${p?.secret ? `<div class="ar-secret" data-aact="reveal"><span>Секрет</span><p>${esc(p.secret)}</p></div>` : ''}
-    ${x.own ? `<div class="ar-row end">${btn('delPerson', `${ic('trash')} Убрать дело`, `data-id="${esc(name)}"`, 'ghost danger sm')}</div>` : ''}`;
+
+    ${sec('Оценки', String(d.assess.length))}
+    ${au.length > 1 ? `<div class="ar-seg">${au.map(a => `<button class="${a[0] === cur[0] ? 'on' : ''}" data-aact="dsAuthor" data-v="${a[0]}">${esc(a[1])}</button>`).join('')}</div>` : ''}
+    <div class="ar-row">${btn('dsAssess', busy(`assess:${name}`) ? `<span class="ar-spin"></span> ${esc(cur[1])} пишет` : `${ic('feather')} Оценка: ${esc(cur[1])}`, nid, 'primary wide')}</div>
+    <div class="ar-list">${d.assess.map((a, i) => memoHtml(name, a, i === 0, paper)).join('') || empty(`${cur[1]} ещё не писал о ${name}.`)}</div>
+
+    ${sec('Записи в деле', btn('dsLogAdd', ic('plus'), nid, 'ico sm'))}
+    <div class="ar-log">${d.log.map(l => `<div class="ar-lg ${l.src === 'chron' ? 'chron' : ''}"><span>${esc(l.at || '')}${l.src === 'chron' ? ' · Летописец' : ''}</span><p>${esc(l.t)}</p><button class="ar-ico" data-aact="dsLogDel" data-id="${esc(name)}" data-v="${esc(l.id)}">${ic('x')}</button></div>`).join('') || empty('Пусто. Летописец сам заносит поступки, ранения и срывы.')}</div>
+
+    ${p ? `${sec('Из «Людей» Life')}${p.bio ? `<p class="ar-note">${esc(C.cut(p.bio, 600))}</p>` : ''}${p.voice ? `<p class="ar-note mute">Манера: ${esc(C.cut(p.voice, 240))}</p>` : ''}${p.secret ? `<div class="ar-secret" data-aact="reveal"><span>Секрет</span><p>${esc(p.secret)}</p></div>` : ''}` : ''}
+    ${x.own ? `<div class="ar-row end">${btn('delPerson', `${ic('trash')} Убрать дело`, nid, 'ghost danger sm')}</div>` : ''}`;
+}
+
+function memoHtml(name, a, open, paper) {
+    const sect = (t, v) => (v ? `<h4>${esc(t)}</h4><p>${esc(v)}</p>` : '');
+    const body = `${sect('История субъекта', a.history)}${sect('Обзор личности', a.overview)}
+        ${a.observations?.length ? `<h4>Поведенческие наблюдения</h4><ul>${a.observations.map(o => `<li>${esc(o)}</li>`).join('')}</ul>` : ''}
+        ${sect('Выводы', a.impressions)}${sect('Заключение', a.conclusion)}
+        ${a.verdict?.length ? `<div class="ds-verdict">${a.verdict.map(v => `<div><span>${esc(v[0])}:</span> <b>${esc(v[1])}</b></div>`).join('')}</div>` : ''}`;
+    return `<details class="ar-memo2${paper ? ' paper' : ''}" ${open ? 'open' : ''}>
+        <summary><span class="ds-cls">Секретно · оценка</span><b>${esc(a.name)}</b><em>${esc(a.role || '')}${a.at ? ` · ${esc(a.at)}` : ''}</em></summary>
+        <div class="ds-memo-b">${EMBLEM}<div class="ds-memo-h"><div><span>Субъект:</span> ${esc(name)}</div><div><span>Составил:</span> ${esc(a.name)}</div></div>${body}</div>
+        <div class="ar-row end">${btn('dsAssessScene', `${ic('zap')} В сцену`, `data-id="${esc(name)}" data-v="${esc(a.id)}"`, 'sm ghost')}${btn('dsAssessDel', ic('trash'), `data-id="${esc(name)}" data-v="${esc(a.id)}"`, 'ico sm ghost danger')}</div>
+    </details>`;
+}
+
+function dossierForm(name) {
+    const d = DS.rec(name);
+    const fields = DS.FIELDS.map(([k, l]) => (k === 'status'
+        ? { k, label: l, type: 'select', value: d.status, opts: DS.STATUS.map(s => [s[0], s[1]]) }
+        : { k, label: l, value: d[k] || '', type: ['skills', 'service', 'powers', 'weak', 'ties', 'family'].includes(k) ? 'area' : 'text', rows: 2 }));
+    fields.push({ k: 'aliases', label: 'Другие имена (для поиска в лоре)', value: d.aliases || '', ph: 'Зимний Солдат, Джеймс Бьюкенен' });
+    form(`Дело: ${name}`, fields, (v) => { for (const [k, val] of Object.entries(v)) d[k] = String(val).trim(); });
 }
 
 // ───────────── радар ─────────────
@@ -757,13 +835,30 @@ export async function onClick(ev) {
         case 'briefScene': { const o = C.opById(id); if (!o?.brief) return; C.arm('brief', `[Брифинг операции «${o.name}» в этом ответе: ${C.era().artur ? 'Арт выводит голограмму и докладывает' : 'в штабе раскладывают карты и докладывают'} — коротко, по сути, своими словами. Суть: ${C.cut(o.brief.replace(/\s+/g, ' '), 700)}]`, { key: o.id }); C.toast('success', 'Брифинг будет в следующем ответе'); render(); return; }
 
         // досье
-        case 'newPerson': form('Новое дело', [{ k: 'name', label: 'Имя' }, { k: 'post', label: 'Назначение' }], (vals) => { const n = vals.name.trim(); if (!n) return; const d = C.dossierOf(n, true); d.post = vals.post.trim(); ui.app = 'dossier'; ui.id = n; }); return;
+        case 'newPerson': form('Новое дело', [{ k: 'name', label: 'Имя' }, { k: 'post', label: 'Назначение' }], (vals) => { const n = vals.name.trim(); if (!n) return; const d = DS.rec(n); d.post = vals.post.trim(); ui.app = 'dossier'; ui.id = n; }); return;
         case 'delPerson': { const ed = m.dossier[C.era().id] || {}; delete ed[id]; ui.id = null; after(); return; }
-        case 'zemo': {
+        case 'dsGroup': ui.dgroup = v; render(); return;
+        case 'dsPaper': { const c = C.cfg(); c.filePaper = c.filePaper || {}; const eid = C.era().id; c.filePaper[eid] = !c.filePaper[eid]; C.saveCfg(); render(); return; }
+        case 'dsEdit': dossierForm(id); return;
+        case 'dsFill': case 'dsRefill': {
+            if (act === 'dsRefill' && !confirm('Перезаполнить всё дело из лора? Правки руками перетрутся.')) return;
             const x = C.dossierList().find(y => y.name === id);
-            run(`zemo:${id}`, () => C.zemoProfile(id, x?.person), (t) => { const d = C.dossierOf(id, true); d.psych = t; C.save(); });
+            run(`fill:${id}`, () => DS.fill(id, x?.person, act === 'dsRefill'), (r) => C.toast('info', r.n ? `Заполнено полей: ${r.n} (источников: ${r.found})` : 'Новых данных в лоре нет'));
             return;
         }
+        case 'dsAuthor': ui.author = v; render(); return;
+        case 'dsAssess': {
+            const x = C.dossierList().find(y => y.name === id);
+            const au = DS.authorsOf().find(a => a[0] === ui.author) || DS.authorsOf()[0];
+            run(`assess:${id}`, () => DS.assess(id, x?.person, au[0]), () => C.toast('info', `${C.esc(au[1])}: оценка в деле`));
+            return;
+        }
+        case 'dsAssessDel': { if (!confirm('Удалить оценку?')) return; const d = DS.rec(id); d.assess = d.assess.filter(a => a.id !== v); after(); return; }
+        case 'dsAssessScene': { const a = DS.rec(id).assess.find(x => x.id === v); if (!a) return; DS.assessScene(id, a); C.toast('success', 'Оценка всплывёт в следующем ответе'); render(); return; }
+        case 'dsScene': DS.fileScene(id); C.toast('success', 'Дело окажется на столе в следующем ответе'); render(); return;
+        case 'dsThreat': { const d = DS.rec(id); d.threat = Number(v); after(); return; }
+        case 'dsLogAdd': form(`Запись в дело: ${id}`, [{ k: 't', label: 'Что произошло', type: 'area', rows: 3 }], (vals) => { if (vals.t.trim()) DS.addLog(id, vals.t.trim()); }); return;
+        case 'dsLogDel': { const d = DS.rec(id); d.log = d.log.filter(l => l.id !== v); after(); return; }
         case 'reveal': el.classList.toggle('on'); return;
 
         // радар
@@ -859,7 +954,14 @@ export function onChange(ev) {
     const v = el.value;
     const m = C.M();
     const c = C.cfg();
-    if (k.startsWith('dossier.')) { const d = C.dossierOf(el.dataset.who, true); const f = k.slice(8); d[f] = f === 'stress' ? C.clamp(v) : v; C.save(); return; }
+    if (k === 'dsPhoto') {
+        const file = el.files?.[0];
+        const who = el.dataset.who;
+        if (!file || !C.A?.uploadImage) return;
+        run(`photo:${who}`, async () => { const path = await C.A.uploadImage(await C.A.fileToJpeg(file, 1000), 'artur_file'); DS.rec(who).photo = path; C.save(); });
+        return;
+    }
+    if (k.startsWith('dossier.')) { const d = DS.rec(el.dataset.who); const f = k.slice(8); d[f] = ['stress', 'loyalty'].includes(f) ? C.clamp(v) : v; C.save(); return; }
     switch (k) {
         case 'med.stones': m.med.stones = C.clamp(v); break;
         case 'med.arm.pct': m.med.arm = { ...(m.med.arm || {}), pct: C.clamp(v) }; break;

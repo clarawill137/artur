@@ -60,6 +60,7 @@ const DEF = {
     voice: '',            // правка голоса Арта
     sharikDrain: 3,       // % заряда в игровой час
     fx: true,             // анимации
+    filePaper: { shield: true }, // личные дела на бумаге (в СНР — всегда)
 };
 
 export function cfg() {
@@ -149,7 +150,7 @@ function recent(n = 3, max = 700) {
 function events(n = 8) {
     try { return (A?.horaeEvents?.() || []).slice(-n).map(e => `${e.timestamp?.story_date || ''} ${e.event?.summary || ''}`.trim()).filter(Boolean); } catch { return []; }
 }
-const userName = () => { try { return A?.canonName?.(ctx().name1) || ctx().name1 || 'Хеди'; } catch { return 'Хеди'; } };
+export const userName = () => { try { return A?.canonName?.(ctx().name1) || ctx().name1 || 'Хеди'; } catch { return 'Хеди'; } };
 
 // ───────────── Зёрнышко (если стоит) ─────────────
 
@@ -326,8 +327,8 @@ export function dossierList() {
     const e = era();
     const re = D.ERA_GROUP[e.id];
     const ppl = lifePeople().filter(x => !re || re.test(`${x.group || ''} ${x.role || ''}`));
-    const out = cast().map(n => ({ name: n, main: true }));
-    for (const x of ppl) if (!out.some(o => norm(o.name) === norm(x.name))) out.push({ name: x.name, person: x });
+    const out = cast().map(n => ({ name: n, main: true, person: lifePeople().find(x => norm(x.name) === norm(n)) }));
+    for (const x of ppl) if (!out.some(o => norm(o.name) === norm(x.name))) out.push({ name: x.name, person: x, circle: !!re });
     for (const n of Object.keys(M().dossier[e.id] || {})) if (!out.some(o => norm(o.name) === norm(n))) out.push({ name: n, own: true });
     return out;
 }
@@ -336,7 +337,7 @@ export function dossierOf(name, create = false) {
     const e = era().id;
     if (!m.dossier[e]) m.dossier[e] = {};
     const key = Object.keys(m.dossier[e]).find(k => norm(k) === norm(name)) || name;
-    if (!m.dossier[e][key] && create) m.dossier[e][key] = { clear: '', post: '', stress: 30, note: '', psych: '', flag: '' };
+    if (!m.dossier[e][key] && create) m.dossier[e][key] = { status: 'active', stress: 30, note: '' };
     return m.dossier[e][key] || null;
 }
 
@@ -532,8 +533,8 @@ export function promptNote(type) {
 const CHRON_RULE = `
 
 art — что в этом посте было по части лаборатории, операций и компьютера Хеди (строка «АРТУР» во входе). Только то, что правда есть в посте; ничего не было — {}.
-{"lab":[{"id":"","note":"что сделали, 4–12 слов"}],"newlab":"","ops":[{"id":"","status":"","note":""}],"newop":{"name":"","goal":"","where":""},"stones":0,"tremor":false,"hurt":[{"who":"","what":""}],"sharik":"","remark":"","idea":""}
-lab — по каким проектам из списка работали в посте (id из списка). newlab — название нового проекта, если начали что-то новое, иначе "". ops — у каких операций из списка сменился статус (plan|live|hold|done|fail) или что произошло, note 4–12 слов. newop — новая операция, если её задумали или поручили, иначе пустые строки. stones — как изменилась нестабильность энергии Камней в Хеди, от -10 до 10 (выброс силы, перегрузка — плюс; покой, сон — минус), 0 — не видно или Камней нет. tremor — после перегрузки дрожат руки. hurt — кто ранен и чем, коротко. sharik — что было с Шариком (зарядили, гладили, путался под ногами), иначе "". remark — реплика АРТУРа себе в журнал про этот пост, 6–18 слов, его голосом: сухо, с сарказмом, по-дружески ворчит; не о чем — "". idea — что АРТУР мог бы сделать САМ в ближайших сценах, 8–20 слов, иначе "".`;
+{"lab":[{"id":"","note":"что сделали, 4–12 слов"}],"newlab":"","ops":[{"id":"","status":"","note":""}],"newop":{"name":"","goal":"","where":""},"stones":0,"tremor":false,"hurt":[{"who":"","what":""}],"sharik":"","dossier":[{"who":"","what":""}],"remark":"","idea":""}
+lab — по каким проектам из списка работали в посте (id из списка). newlab — название нового проекта, если начали что-то новое, иначе "". ops — у каких операций из списка сменился статус (plan|live|hold|done|fail) или что произошло, note 4–12 слов. newop — новая операция, если её задумали или поручили, иначе пустые строки. stones — как изменилась нестабильность энергии Камней в Хеди, от -10 до 10 (выброс силы, перегрузка — плюс; покой, сон — минус), 0 — не видно или Камней нет. tremor — после перегрузки дрожат руки. hurt — кто ранен и чем, коротко. sharik — что было с Шариком (зарядили, гладили, путался под ногами), иначе "". dossier — что из поста стоит записать кому-то в личное дело (поступок, ранение, срыв, нарушение, заслуга, новый факт биографии), who — имя, what — 6–16 слов сухим канцеляритом; обычно пусто. remark — реплика АРТУРа себе в журнал про этот пост, 6–18 слов, его голосом: сухо, с сарказмом, по-дружески ворчит; не о чем — "". idea — что АРТУР мог бы сделать САМ в ближайших сценах, 8–20 слов, иначе "".`;
 
 export function chronHook() {
     const c = cfg();
@@ -543,7 +544,7 @@ export function chronHook() {
     const pl = projects().filter(p => p.stage < D.STAGES.length - 1).slice(0, 8).map(p => `${p.id} — ${p.name} (${D.STAGES[p.stage]})`);
     const ol = ops().filter(o => !['done', 'fail'].includes(o.status)).slice(0, 6).map(o => `${o.id} — ${o.name} (${statusName(o.status).toLowerCase()})`);
     const line = `АРТУР (эпоха: ${e.name}${e.artur ? '' : ', АРТУРа рядом нет — remark и idea пустые'}${e.stones ? '' : ', Камней в Хеди нет — stones 0'}): проекты лаборатории — ${pl.join('; ') || 'нет'}. Операции — ${ol.join('; ') || 'нет'}.${M().sharik.with && e.artur ? ' Шарик с Хеди.' : ''}`;
-    return { key: '"art": {}', rule: CHRON_RULE, input: line, tokens: 220 };
+    return { key: '"art": {}', rule: CHRON_RULE, input: line, tokens: 260 };
 }
 
 export function afterPost(i, j) {
@@ -599,12 +600,12 @@ export function afterPost(i, j) {
 
 // ───────────── запросы к модели (профиль Летописца) ─────────────
 
-async function ask(system, user, tokens = 600) {
+export async function ask(system, user, tokens = 600) {
     if (!A?.askModel) throw new Error('Нужен Life: Арт говорит через его Летописца.');
     const out = await A.askModel([{ role: 'system', content: system }, { role: 'user', content: user }], tokens);
     return out;
 }
-const jsonOf = (t) => { try { return A?.extractJson?.(t) || JSON.parse(String(t).replace(/```(?:json)?/g, '').trim()); } catch { return null; } };
+export const jsonOf = (t) => { try { return A?.extractJson?.(t) || JSON.parse(String(t).replace(/```(?:json)?/g, '').trim()); } catch { return null; } };
 
 function situation() {
     const k = clock();
@@ -680,13 +681,6 @@ export async function report(o) {
     o.report = cut(str(await ask(sys, usr, 550)), 2000);
     save();
     return o.report;
-}
-
-/** Психпрофиль от Земо — в его голосе. */
-export async function zemoProfile(name, person) {
-    const sys = 'Ты — Гельмут Земо, консультант-профайлер А.И.М. под надзором: умный, ироничный, аристократичный, любит рейджбайтить. Напиши по-русски психологический профиль человека для досье: 3–4 предложения, точно, колко, с одним неудобным наблюдением. Без markdown.';
-    const usr = `Человек: ${name}\n${person ? [person.role, person.bio, (person.traits || []).join(', '), person.voice].filter(Boolean).join('\n') : ''}\n\nКонтекст: ${eraLore(era())}`;
-    return cut(str(await ask(sys, usr, 300)), 900);
 }
 
 // ───────────── картинки ─────────────
