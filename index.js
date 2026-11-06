@@ -4,6 +4,7 @@
 import * as C from './core.js';
 import * as U from './ui.js';
 import * as DS from './dossier.js';
+import * as HM from './home.js';
 
 const ID = 'ar';
 let api = null;
@@ -20,9 +21,9 @@ function register() {
     B.register({
         id: ID,
         init(a) { api = a; C.setApi(a); },
-        prompt: (type) => C.promptNote(type),
+        prompt: (type) => [C.promptNote(type), HM.promptLine()].filter(Boolean).join('\n'),
         chron: () => C.chronHook(),
-        afterPost: (i, j) => { toastEvents([...C.afterPost(i, j), ...DS.chronLog(j?.art?.dossier)]); U.renderSoon(); },
+        afterPost: (i, j) => { toastEvents([...C.afterPost(i, j), ...DS.chronLog(j?.art?.dossier), ...HM.chronHome(j?.art?.home)]); U.renderSoon(); },
         sceneHtml: () => U.sceneHtml(),
     });
     return true;
@@ -61,7 +62,7 @@ function settingsDrawer() {
     document.getElementById('ar_open')?.addEventListener('click', () => U.open());
 }
 
-const APPS = ['lab', 'ops', 'dossier', 'radar', 'med', 'bases', 'files', 'sharik', 'hydra', 'artur'];
+const APPS = ['lab', 'ops', 'dossier', 'radar', 'med', 'home', 'bases', 'files', 'sharik', 'hydra', 'artur'];
 function registerSlash() {
     try {
         const { SlashCommandParser, SlashCommand } = SillyTavern.getContext();

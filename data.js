@@ -60,13 +60,14 @@ export const APPS = {
     med: ['activity', 'Медблок'],
     bases: ['building', 'Базы'],
     files: ['folder', 'Протоколы и архив'],
+    home: ['home', 'Дом'],
     sharik: ['bot', 'Шарик'],
     artur: ['brain', 'А.Р.Т.У.Р.'],
 };
 
 // Какие приложения есть в эпохе и как они там называются.
 export const ERA_APPS = {
-    aim: { lab: 'Лаборатория', ops: 'Операции', dossier: 'Досье', radar: 'Радар', med: 'Медблок', bases: 'Базы', files: 'Протоколы и архив', sharik: 'Шарик', artur: 'А.Р.Т.У.Р.' },
+    aim: { lab: 'Лаборатория', ops: 'Операции', dossier: 'Досье', radar: 'Радар', med: 'Медблок', home: 'Дом', sharik: 'Шарик', bases: 'Базы', files: 'Протоколы и архив', artur: 'А.Р.Т.У.Р.' },
     shield: { ops: 'Дела Щ.И.Т.а', hydra: 'Гидра', dossier: 'Досье', lab: 'Лаборатория', radar: 'Сводки', med: 'Медблок', bases: 'Объекты', files: 'Архив', sharik: 'Шарик', artur: 'А.Р.Т.У.Р.' },
     run: { bases: 'Явки', radar: 'Слежка', lab: 'Кухонная лаба', ops: 'Дела', med: 'Аптечка', files: 'Архив', sharik: 'Шарик', artur: 'А.Р.Т.У.Р.' },
     ship: { ops: 'Курс', bases: 'Корабль', lab: 'Бортовая лаба', radar: 'Миры', med: 'Медотсек', files: 'Бортжурнал', sharik: 'Шарик', artur: 'А.Р.Т.У.Р.' },

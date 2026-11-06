@@ -5,6 +5,9 @@ import * as C from './core.js';
 import * as D from './data.js';
 import * as DS from './dossier.js';
 import * as H from './history.js';
+import * as HM from './home.js';
+import * as HD from './homedata.js';
+import * as P from './pet.js';
 
 const esc = C.esc;
 const ui = { app: null, id: null, modal: null, dice: null, typed: new Set(), scroll: {}, busy: new Set(), filter: '' };
@@ -18,6 +21,7 @@ const OWN = {
     eye2: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
     drawer: '<rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 12h18"/><path d="M10 8h4M10 16h4"/>',
     minus: '<path d="M5 12h14"/>',
+    thermo: '<path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0Z"/>',
     stamp: '<path d="M5 22h14"/><path d="M19.27 13.73A2.5 2.5 0 0 0 17.5 13h-11A2.5 2.5 0 0 0 4 15.5V17a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1.5c0-.66-.26-1.3-.73-1.77Z"/><path d="M14 13V8.5C14 7 15 7 15 5a3 3 0 0 0-6 0c0 2 1 2 1 3.5V13"/>',
 };
 export function ic(name, cls = '') {
@@ -27,11 +31,6 @@ export function ic(name, cls = '') {
 }
 const EYE = `<svg class="ar-eye" viewBox="0 0 64 64" aria-hidden="true"><circle class="e1" cx="32" cy="32" r="29"/><circle class="e2" cx="32" cy="32" r="22"/><circle class="e3" cx="32" cy="32" r="15"/><circle class="e4" cx="32" cy="32" r="6.5"/><path class="e5" d="M32 3v6M32 55v6M3 32h6M55 32h6"/></svg>`;
 const SEAL = `<svg class="ar-seal" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29"/><circle cx="32" cy="32" r="23"/><text x="32" y="37" text-anchor="middle">S.S.R.</text></svg>`;
-const SHARIK = `<svg class="ar-sharik" viewBox="0 0 120 110" aria-hidden="true">
-<g class="sh-head"><rect x="30" y="8" width="26" height="20" rx="9"/><rect x="64" y="8" width="26" height="20" rx="9"/><circle class="sh-eye" cx="43" cy="18" r="5"/><circle class="sh-eye" cx="77" cy="18" r="5"/><path d="M56 18h8M60 28v12"/></g>
-<rect class="sh-body" x="34" y="40" width="52" height="38" rx="5"/><path d="M42 52h36M42 60h20"/><circle class="sh-led" cx="74" cy="66" r="3"/>
-<g class="sh-tread"><rect x="22" y="78" width="30" height="20" rx="9"/><rect x="68" y="78" width="30" height="20" rx="9"/><circle cx="30" cy="88" r="3"/><circle cx="44" cy="88" r="3"/><circle cx="76" cy="88" r="3"/><circle cx="90" cy="88" r="3"/></g></svg>`;
-
 // ───────────── мелкие куски ─────────────
 
 const sec = (t, right = '') => `<div class="ar-sec"><span>${esc(t)}</span>${right ? `<em>${right}</em>` : ''}</div>`;
@@ -154,6 +153,7 @@ function screen(e) {
         case 'bases': return ui.id ? baseHtml(e) : basesHtml(e);
         case 'files': return filesHtml(e);
         case 'sharik': return sharikHtml(e);
+        case 'home': return homeHtml(e);
         case 'hydra': return hydraHtml(e);
         case 'artur': return arturHtml(e);
         default: return deskHtml(e);
@@ -230,6 +230,7 @@ function tileSub(id, e) {
         case 'bases': { const h = C.baseHere(); if (h) return `здесь: ${h.name}`; const a = C.bases().filter(b => b.status !== 'ok').length; return a ? `тревога: ${a}` : 'в норме'; }
         case 'files': { const n = C.files().filter(f => f.lock).length; return n ? `${n} под замком` : `${C.files().length} папок`; }
         case 'sharik': return `${C.clamp(m.sharik.charge)}% · ${C.sharikMood().mood}`;
+        case 'home': { const st = HM.alarm(); return st === 'breach' ? 'ПЕРИМЕТР НАРУШЕН' : st === 'alert' ? 'охрана: внимание' : `${(HD.MODES.find(x => x[0] === HM.H().mode) || [])[1]?.toLowerCase()} · периметр чист`; }
         case 'hydra': return ui.hydraSeen ? `легенда ${m.hydra.legend}%` : 'идёт…';
         case 'artur': return e.artur ? 'голос, лента, настройки' : 'настройки';
         default: return '';
@@ -585,16 +586,121 @@ function fileModal(f) {
 
 // ───────────── Шарик ─────────────
 
-function sharikHtml(e) {
-    const s = C.sharikTick();
-    const md = C.sharikMood(s);
-    return `${head('Шарик')}
-    <div class="ar-shbox mood-${esc(md.mood)}${s.charge < 15 ? ' low' : ''}">${SHARIK}<b>${esc(md.mood)}</b><span>${esc(md.how)}</span></div>
-    <div class="ar-kv"><div><span>Заряд · ${C.clamp(s.charge)}%</span>${bar(s.charge, s.charge < 15 ? 'bad' : '')}</div><div><span>Довольство · ${C.clamp(s.love)}%</span>${bar(s.love)}</div></div>
-    <div class="ar-row wrap">${btn('sharik', `${ic('zap')} Зарядить`, 'data-v="charge"', 'primary')}${btn('sharik', `${ic('heart')} Погладить`, 'data-v="pet"', 'ghost')}${btn('sharik', s.with ? 'Оставить на базе' : 'Взять с собой', `data-v="${s.with ? 'leave' : 'take'}"`, 'ghost')}</div>
-    <p class="ar-mute small">${s.with ? 'Шарик с Хеди: модель иногда даёт ему мелькнуть в сцене.' : 'Шарик остался — в сценах его нет.'}</p>
-    ${sec('Что было', String(s.log.length))}<div class="ar-log">${s.log.map(l => `<div class="ar-lg"><span>${esc(l.at || '')}</span><p>${esc(l.t)}</p></div>`).join('') || empty('Пока ничего.')}</div>`;
+function sharikSvg(s) {
+    const acc = s.acc || 'none';
+    const dirt = (Number(s.dirt) || 0) >= 50, wear = (Number(s.wear) || 0) >= 60;
+    return `<svg class="ar-sharik" viewBox="0 -24 120 134" aria-hidden="true">
+<g class="sh-head"><rect x="30" y="8" width="26" height="20" rx="9"/><rect x="64" y="8" width="26" height="20" rx="9"/><circle class="sh-eye" cx="43" cy="18" r="5"/><circle class="sh-eye" cx="77" cy="18" r="5"/><path d="M56 18h8M60 28v12"/>
+${acc === 'santa' ? '<g class="acc santa"><path d="M42 9 L60 -16 L78 9 Z"/><rect x="40" y="5" width="40" height="6" rx="3"/><circle cx="60" cy="-17" r="4"/></g>' : ''}
+${acc === 'lamp' ? '<g class="acc lamp"><path class="beam" d="M60 3 L36 -20 L84 -20 Z"/><rect x="55" y="1" width="10" height="6" rx="2"/></g>' : ''}</g>
+${acc === 'scarf' ? '<g class="acc scarf"><rect x="40" y="36" width="40" height="7" rx="3"/><path d="M68 42 l3 15 l7 -2 l-3 -13 z"/></g>' : ''}
+<rect class="sh-body" x="34" y="40" width="52" height="38" rx="5"/><path d="M42 52h36M42 60h20"/><circle class="sh-led" cx="74" cy="66" r="3"/>
+${acc === 'bow' ? '<g class="acc bow"><path d="M86 44 l10 -7 v14 z M86 44 l-10 -7 v14 z"/><circle cx="86" cy="44" r="2.6"/></g>' : ''}
+${acc === 'sticker' ? '<g class="acc sticker"><rect x="40" y="64" width="24" height="9" rx="2" transform="rotate(-6 52 68)"/><path d="M43 68h17" transform="rotate(-6 52 68)"/></g>' : ''}
+${wear ? '<g class="wear"><rect x="74" y="44" width="14" height="5" rx="1" transform="rotate(35 81 46)"/><rect x="74" y="44" width="14" height="5" rx="1" transform="rotate(-35 81 46)"/></g>' : ''}
+<g class="sh-tread"><rect x="22" y="78" width="30" height="20" rx="9"/><rect x="68" y="78" width="30" height="20" rx="9"/><circle cx="30" cy="88" r="3"/><circle cx="44" cy="88" r="3"/><circle cx="76" cy="88" r="3"/><circle cx="90" cy="88" r="3"/></g>
+${dirt ? '<g class="dirt"><circle cx="46" cy="72" r="3"/><circle cx="58" cy="70" r="2"/><circle cx="82" cy="58" r="2.5"/><circle cx="30" cy="94" r="2.5"/><circle cx="88" cy="95" r="2"/></g>' : ''}</svg>`;
 }
+const sceneTog = () => `<button class="ar-scenetog${HM.sceneOn() ? ' on' : ''}" data-aact="homeScene" title="Действия уходят в следующий ответ">${ic('send')}<span>${HM.sceneOn() ? 'в сцену' : 'тихо'}</span></button>`;
+const stars = (n) => `<span class="ar-stars">${'★'.repeat(n)}${'☆'.repeat(Math.max(0, 5 - n))}</span>`;
+
+function sharikHtml(e) {
+    const s = P.S();
+    const md = C.sharikMood(s);
+    const care = HD.SHARIK_CARE.map(([id, l, i]) => btn('pCare', `${ic(i)} ${esc(l)}`, `data-v="${id}"`, `sm ${id === 'scold' ? 'ghost danger' : 'ghost'}`)).join('');
+    return `${head('Шарик', sceneTog())}
+    <div class="ar-shbox mood-${esc(md.mood)}${s.charge < 15 ? ' low' : ''}">${sharikSvg(s)}<b>${esc(md.mood)}</b><span>${esc(md.how)}</span></div>
+    <div class="ar-kv four">
+        <div><span>Заряд · ${C.clamp(s.charge)}%</span>${bar(s.charge, s.charge < 15 ? 'bad' : '')}</div>
+        <div><span>Довольство · ${C.clamp(s.love)}%</span>${bar(s.love)}</div>
+        <div><span>Чистота · ${100 - C.clamp(s.dirt)}%</span>${bar(100 - C.clamp(s.dirt), s.dirt >= 75 ? 'bad' : '')}</div>
+        <div><span>Исправность · ${100 - C.clamp(s.wear)}%</span>${bar(100 - C.clamp(s.wear), s.wear >= 75 ? 'bad' : '')}</div>
+    </div>
+    ${sec('Уход')}<div class="ar-row wrap">${care}</div>
+    ${sec('Поручения', 'как Дубина у Тони')}
+    <div class="ar-jobs">${HD.SHARIK_JOBS.map(j => { const lv = P.level(j[0]); return `<button class="ar-job" data-aact="pJob" data-v="${j[0]}"><span class="ar-tile-ic">${ic(j[2])}</span><b>${esc(j[1])}</b>${stars(lv.lvl)}</button>`; }).join('')}</div>
+    <div class="ar-row wrap">${btn('pAntic', `${ic('sparkles')} Что он творит?`, '', 'ghost')}${btn('pWith', s.with ? 'Оставить на базе' : 'Взять с собой', `data-v="${s.with ? '0' : '1'}"`, 'ghost')}</div>
+    <p class="ar-mute small">${s.with ? 'Шарик с Хеди: модель иногда даёт ему мелькнуть в сцене.' : 'Шарик остался — в сценах его нет.'} Уровень поручения растёт с удачными попытками: меньше пролитого кофе.</p>
+    ${sec('Аксессуар')}${seg('pAcc', s.acc || 'none', HD.SHARIK_ACC)}
+    ${sec('Что было', String(s.log.length))}<div class="ar-log">${s.log.map(l => `<div class="ar-lg ${esc(l.kind)}"><span>${esc(l.at || '')}</span><p>${esc(l.t)}</p></div>`).join('') || empty('Пока ничего.')}</div>`;
+}
+
+// ───────────── дом ─────────────
+
+const SHIELD = (st) => `<svg class="ar-shield st-${st}" viewBox="0 0 48 56" aria-hidden="true"><path d="M24 3 L44 10 V27 C44 40 35 49 24 53 C13 49 4 40 4 27 V10 Z"/>${st === 'ok' ? '<path d="M15 28 l7 7 l12 -14"/>' : st === 'alert' ? '<path d="M24 16 v15 M24 38 v2"/>' : '<path d="M16 20 l16 16 M32 20 l-16 16"/>'}</svg>`;
+
+function homeHtml(e) {
+    const h = HM.H();
+    const st = HM.alarm();
+    const here = HM.atHome();
+    const pg = C.pregLine();
+    const preg = pg && !pg.baby;
+    const mg = HM.caffeine();
+    const cup = h.coffee.cup;
+    const lau = HM.laundry();
+    const vio = HM.violets();
+    const cat = HM.cat();
+    const evs = h.events.slice(0, 4);
+    const LST = { idle: 'пусто', wash: 'стирает', wet: 'готово, мокрое', drying: 'сушит', dry: 'сухое, ждёт' };
+    return `${head('Дом', sceneTog())}
+    <p class="ar-mute small">${esc(HD.HOME_TITLE)} · над лавкой Марко · ${here ? 'вы дома' : 'вы не дома'}</p>
+    ${seg('hMode', h.mode, HD.MODES)}
+    <div class="ar-toggles">${tog2('hDnd', 'Не беспокоить — Арт молчит, разве что пожар', h.dnd)}</div>
+
+    ${sec('Охрана · Форт-Нокс', st === 'ok' ? 'всё зелёное' : st === 'alert' ? 'внимание' : 'НАРУШЕНИЕ')}
+    <div class="ar-panel ar-sec-panel st-${st}">
+        <div class="ar-guard">${SHIELD(st)}<div><b>${st === 'ok' ? 'Периметр чист' : st === 'alert' ? 'Есть подозрительное' : 'Периметр нарушен'}</b><span>${esc(HD.MODE_NOTE[h.mode])}</span></div></div>
+        <div class="ar-zones">${HD.ZONES.map(z => `<button class="ar-zone st-${h.zones[z[0]]}" data-aact="hZone" data-v="${z[0]}" title="${esc(z[2])}"><i></i><b>${esc(z[1])}</b><span>${esc(z[2])}</span></button>`).join('')}</div>
+        <div class="ar-row">${btn('hCheck', `${ic('dice')} Проверить периметр`, '', 'primary wide')}${st !== 'ok' ? btn('hClear', `${ic('check')} Отбой`, '', 'ghost') : ''}</div>
+        ${evs.length ? `<div class="ar-list">${evs.map(ev => `<div class="ar-ev k-${ev.kind}"><span>${esc(ev.at)} · d20 ${ev.roll}${ev.zone ? ` · ${esc(HM.zoneName(ev.zone))}` : ''}</span><p>${esc(ev.text)}</p>${ev.kind !== 'clean' ? btn('hEvScene', ic('zap'), `data-id="${esc(ev.id)}" title="В следующий ответ"`, 'ico sm') : ''}</div>`).join('')}</div>` : ''}
+    </div>
+
+    ${sec('Кухня')}
+    <div class="ar-panel">
+        <div class="ar-card-h"><b>${ic('coffee')} Кофемашина</b>${preg ? `<span class="ar-mute small">кофеин ${mg}/${HD.CAFFEINE_MAX} мг</span>` : ''}</div>
+        ${preg ? bar(Math.min(100, mg / HD.CAFFEINE_MAX * 100), mg >= HD.CAFFEINE_MAX ? 'bad' : 'thin') : ''}
+        <div class="ar-drinks">${HD.DRINKS.map(d => `<button class="ar-drink${ui.refused === d[0] ? ' refused' : ''}" data-aact="hBrew" data-v="${d[0]}"><b>${esc(d[1])}</b>${d[2] > 10 ? `<em>${d[2]} мг</em>` : ''}</button>`).join('')}</div>
+        ${ui.refused ? `<div class="ar-ban">${ic('lock')}<span>${esc(ui.refusedText || '')}</span></div><div class="ar-row">${btn('hBrewForce', `${ic('zap')} Приказ директора`, `data-v="${esc(ui.refused)}"`, 'ghost danger sm')}${btn('hBrewCancel', 'Ладно, декаф', '', 'ghost sm')}</div>` : ''}
+        ${cup ? `<div class="ar-cup">${ic('coffee')}<span>На стойке: <b>${esc(cup.name)}</b>${cup.at ? ` · ${esc(cup.at)}` : ''}</span></div><div class="ar-row wrap">${btn('pJob', `${ic('bot')} Шарик, неси`, 'data-v="coffee"', 'sm ghost')}${btn('hArm', `${ic('wrench')} Лапа, подай`, `data-id="a1" data-v="coffee"`, 'sm ghost')}${btn('hCupTaken', 'Забрали', '', 'sm ghost')}</div>` : ''}
+    </div>
+    <div class="ar-panel">
+        <div class="ar-card-h"><b>${ic('box')} Холодильник</b></div><p class="ar-mute small">на дверце — снимок макового зёрнышка, список покупок и магнит из Мадрипура</p>
+        <div class="ar-chips">${h.fridge.map((x, i) => `<button class="ar-fr" data-aact="hOut" data-v="${i}" title="Кончилось">${esc(x)}</button>`).join('') || '<span class="ar-mute small">пусто</span>'}</div>
+        <div class="ar-row"><input class="ar-in" id="ar-fridge-in" placeholder="положить в холодильник"><button class="ar-btn ico sm" data-aact="hAdd">${ic('plus')}</button></div>
+        ${h.shop.length ? `<span class="ar-mute small">Список покупок (тап — купили):</span><div class="ar-chips">${h.shop.map((x, i) => `<button class="ar-fr shop" data-aact="hGot" data-v="${i}">${esc(x)}</button>`).join('')}</div>` : ''}
+        <div class="ar-row">${btn('hOven', h.oven.on ? `${ic('flame')} Духовка ${h.oven.t}° — выкл` : `${ic('flame')} Духовка 180°`, '', h.oven.on ? 'sm primary' : 'sm ghost')}${h.oven.on ? `${btn('hOvenT', '−', 'data-v="-10"', 'ico sm ghost')}${btn('hOvenT', '+', 'data-v="10"', 'ico sm ghost')}` : ''}<span class="ar-mute small">не микроволновка</span></div>
+    </div>
+
+    ${sec('Климат')}
+    <div class="ar-panel">
+        ${seg('hClim', h.climate.mode, HD.CLIMATE_MODES)}
+        <div class="ar-clim">${h.climate.zones.map(z => `<div class="ar-cz"><span>${esc(z.name)}</span><div>${btn('hTemp', '−', `data-id="${z.id}" data-v="-1"`, 'ico sm ghost')}<b>${z.t}°</b>${btn('hTemp', '+', `data-id="${z.id}" data-v="1"`, 'ico sm ghost')}</div></div>`).join('')}</div>
+        <div class="ar-toggles">${tog2('hFloor', 'Тёплый пол в ванной и спальне', h.climate.floor)}</div>
+    </div>
+    ${sec('Свет')}${seg('hLight', h.light, HD.LIGHTS.map(l => [l[0], l[1]]))}
+    ${sec('Музыка')}${seg('hMusic', h.music, HD.MUSIC)}
+
+    ${sec('Быт')}
+    <div class="ar-grid2">
+        <div class="ar-panel mini"><div class="ar-card-h"><b>${ic('shirt')} Стирка</b></div><p class="ar-mute small">${esc(LST[lau.st])}${HM.laundryLeft() ? ` · ${esc(HM.laundryLeft())}` : ''}</p>
+            ${lau.st === 'idle' ? `<select class="ar-in" id="ar-lau">${HD.LAUNDRY.map(l => `<option value="${l[0]}">${esc(l[1])} · ${l[2]} мин</option>`).join('')}</select>${btn('hWash', 'Запустить', '', 'sm ghost wide')}`
+            : lau.st === 'wet' ? btn('hDry', 'В сушилку', '', 'sm ghost wide') : lau.st === 'dry' ? btn('hArm', 'Лапы, сложите', 'data-id="a1" data-v="fold"', 'sm ghost wide') : ''}</div>
+        <div class="ar-panel mini"><div class="ar-card-h"><b>${ic('sun')} Фиалки</b></div><p class="ar-mute small">${esc(vio.st)}${vio.days != null ? ` · ${vio.days} дн` : ''}</p>
+            ${btn('hWater', 'Полить', '', 'sm ghost wide')}${btn('pJob', 'Шарик, полей', 'data-v="water"', 'sm ghost wide')}</div>
+        <div class="ar-panel mini"><div class="ar-card-h"><b>${ic('paw')} ${esc(cat.name)}</b></div><p class="ar-mute small">${cat.fed ? 'накормлена' : 'голодная, требует'}${cat.spot ? ` · ${esc(cat.spot)}` : ''}</p>
+            ${btn('hFeed', 'Покормить', '', 'sm ghost wide')}${btn('hFind', 'Где она?', '', 'sm ghost wide')}</div>
+        <div class="ar-panel mini"><div class="ar-card-h"><b>${ic('sparkles')} Дроны</b></div><p class="ar-mute small">уборка; протокол лояльности к еде ВКЛ</p>
+            ${btn('hDrones', 'Запустить уборку', '', 'sm ghost wide')}</div>
+    </div>
+
+    ${sec('Лапы-манипуляторы')}
+    ${h.arms.map(a => `<div class="ar-panel arm"><div class="ar-card-h"><b>${ic('wrench')} ${esc(a.name)}</b><span class="ar-mute small">${esc(a.place)} · ${stars(a.skill)}</span><button class="ar-ico" data-aact="hArmName" data-id="${a.id}">${ic('pencil')}</button></div>
+        <div class="ar-chips">${HD.ARM_TASKS.map(t => `<button class="ar-fr task" data-aact="hArm" data-id="${a.id}" data-v="${t[0]}">${esc(t[1])}</button>`).join('')}</div></div>`).join('')}
+
+    ${sec('Журнал дома', String(h.log.length))}
+    <div class="ar-log">${h.log.slice(0, 25).map(l => `<div class="ar-lg ${esc(l.kind)}"><span>${esc(l.at || '')}</span><p>${esc(l.t)}</p></div>`).join('') || empty('Тихо.')}</div>`;
+}
+const tog2 = (act, label, on) => `<button class="ar-tog${on ? ' on' : ''}" data-aact="${act}"><i></i><span>${esc(label)}</span></button>`;
 
 // ───────────── Гидра (скрытый слой, Щ.И.Т. 2014) ─────────────
 
@@ -953,7 +1059,39 @@ export async function onClick(ev) {
         case 'delFile': { if (!confirm('Удалить папку?')) return; const l = C.files(); const i = l.findIndex(f => f.id === id); if (i >= 0) l.splice(i, 1); closeModal(); after(); return; }
 
         // Шарик
-        case 'sharik': { const t = C.sharikDo(v); C.toast('info', t, 'Шарик'); after(); return; }
+        case 'pCare': { const t = P.care(v); C.toast('info', esc(t)); after(); return; }
+        case 'pJob': { const r = P.job(v); if (r) C.toast(r.res === 'ok' ? 'success' : r.res === 'refuse' ? 'warning' : 'info', esc(r.text)); after(); return; }
+        case 'pAntic': C.toast('info', esc(P.antic())); after(); return;
+        case 'pWith': P.setWith(v === '1'); after(); return;
+        case 'pAcc': P.setAcc(v); after(); return;
+        case 'homeScene': C.cfg().homeScene = !HM.sceneOn(); C.saveCfg(); render(); return;
+        case 'hMode': HM.setMode(v); after(); return;
+        case 'hDnd': HM.setDnd(!HM.H().dnd); after(); return;
+        case 'hZone': HM.cycleZone(v); after(); return;
+        case 'hCheck': { const ev = HM.checkPerimeter(); C.toast(ev.kind === 'breach' ? 'warning' : 'info', esc(ev.text)); after(); return; }
+        case 'hClear': HM.allClear(); after(); return;
+        case 'hEvScene': { const ev = HM.H().events.find(x => x.id === id); if (ev) { HM.eventScene(ev); C.toast('success', 'Арт доложит в следующем ответе'); } render(); return; }
+        case 'hBrew': case 'hBrewForce': { const r = HM.brew(v, act === 'hBrewForce'); if (r.refused) { ui.refused = v; ui.refusedText = r.text; } else { ui.refused = null; C.toast('info', esc(r.text)); } after(); return; }
+        case 'hBrewCancel': ui.refused = null; render(); return;
+        case 'hCupTaken': HM.cupTaken(); after(); return;
+        case 'hOut': HM.fridgeOut(Number(v)); after(); return;
+        case 'hGot': HM.shopGot(Number(v)); after(); return;
+        case 'hAdd': { const inp = document.getElementById('ar-fridge-in'); HM.fridgeAdd(inp?.value); after(); return; }
+        case 'hOven': HM.oven(!HM.H().oven.on, HM.H().oven.on ? null : 180); after(); return;
+        case 'hOvenT': HM.oven(true, HM.H().oven.t + Number(v)); after(); return;
+        case 'hClim': HM.setClimateMode(v); after(); return;
+        case 'hTemp': HM.setTemp(id, Number(v)); after(); return;
+        case 'hFloor': HM.toggleFloor(); after(); return;
+        case 'hLight': HM.setLight(v); after(); return;
+        case 'hMusic': HM.setMusic(v); after(); return;
+        case 'hWash': HM.laundryStart(document.getElementById('ar-lau')?.value || 'daily'); after(); return;
+        case 'hDry': HM.laundryDry(); after(); return;
+        case 'hWater': HM.water(); C.toast('info', 'Фиалки политы'); after(); return;
+        case 'hFeed': HM.feedCat(); C.toast('info', `${esc(HM.H().cat.name)} накормлена и делает вид, что впервые за неделю`); after(); return;
+        case 'hFind': C.toast('info', `${esc(HM.H().cat.name)}: ${esc(HM.findCat())}`); after(); return;
+        case 'hDrones': C.toast('info', esc(HM.drones())); after(); return;
+        case 'hArm': { const r = HM.armTask(id, v); if (r) C.toast(r.res === 'fail' ? 'warning' : 'info', esc(r.text)); after(); return; }
+        case 'hArmName': { const a = HM.H().arms.find(x => x.id === id); if (!a) return; form('Лапа', [{ k: 'name', label: 'Имя', value: a.name }, { k: 'place', label: 'Где висит', value: a.place }], (vals) => { HM.renameArm(id, vals.name); if (vals.place.trim()) a.place = vals.place.trim(); }); return; }
 
         // Гидра
         case 'addHydra': form('Заметка', [{ k: 't', label: 'Текст', type: 'area', rows: 3 }], (vals) => { if (!vals.t.trim()) return; m.hydra.notes.unshift({ id: C.uid(), t: vals.t.trim(), at: C.clock().date }); }); return;

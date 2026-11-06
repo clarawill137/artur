@@ -60,6 +60,7 @@ const DEF = {
     voice: '',            // правка голоса Арта
     sharikDrain: 3,       // % заряда в игровой час
     fx: true,             // анимации
+    homeScene: true,      // действия в доме и с Шариком уходят в следующий ответ
     filePaper: { shield: true }, // личные дела на бумаге (в СНР — всегда)
 };
 
@@ -89,7 +90,7 @@ function blank() {
         projects: [], ops: [], radar: [], patients: [], feed: [], ideas: [], shots: [],
         dossier: {}, bases: {}, files: {}, past: {}, remark: {}, scan: {},
         med: { stones: 35, tremor: false, notes: [], arm: { pct: 100, note: '' } },
-        sharik: { charge: 80, love: 60, t: null, mes: null, with: true, log: [] },
+        sharik: { charge: 80, love: 60, wear: 10, dirt: 10, acc: '', skills: {}, sad: false, t: null, mes: null, with: true, log: [] },
         hydra: { legend: 80, pierce: 60, notes: [] },
     };
 }
@@ -196,6 +197,16 @@ export function arm(kind, text, extra = {}) {
     try { A?.updatePrompt?.(); } catch { /* */ }
 }
 export const shots = () => M().shots;
+/** Копит мелкие события в одну заметку на следующий ответ (не спамит модель): последние max пунктов. */
+export function armList(kind, item, prefix, suffix, max = 5) {
+    const m = M();
+    let sh = m.shots.find(x => x.kind === kind && x.key === 'list');
+    if (!sh) { sh = { kind, key: 'list', items: [], after: clock().mes, at: Date.now() }; m.shots.push(sh); }
+    sh.items = [...(sh.items || []).filter(x => x !== item), item].slice(-max);
+    sh.text = `${prefix}${sh.items.join('; ')}${suffix}`;
+    save();
+    try { A?.updatePrompt?.(); } catch { /* */ }
+}
 export function disarm(id) { const m = M(); m.shots = m.shots.filter(s => s.at !== id); save(); try { A?.updatePrompt?.(); } catch { /* */ } }
 /** Пришёл новый ответ модели — разовые заметки отработали. */
 export function spendShots(i) {
@@ -432,35 +443,25 @@ export function sharikTick() {
     if (h > 0) {
         s.charge = clamp(s.charge - h * (Number(cfg().sharikDrain) || 3));
         s.love = clamp(s.love - h * 1.5);
+        s.dirt = clamp((Number(s.dirt) || 0) + h * 0.3);
+        s.wear = clamp((Number(s.wear) || 0) + h * 0.4);
     }
     s.t = k.t; s.mes = k.mes;
     return s;
 }
 export function sharikMood(s = M().sharik) {
-    const c = Number(s.charge) || 0;
+    const c = Number(s.charge) || 0, love = Number(s.love) || 0, dirt = Number(s.dirt) || 0, wear = Number(s.wear) || 0;
+    const fear = Object.values(M().home?.zones || {}).includes('breach');
+    if (c <= 0) return { mood: 'сел', how: 'стоит, где выключился, и смотрит с укором' };
+    if (s.sad) return { mood: 'обижен', how: 'отвернулся к стене и демонстративно мигает' };
+    if (fear) return { mood: 'напуган', how: 'прячется за ногами Хеди и мигает красным' };
+    if (c < 15) return { mood: 'вялый', how: 'еле ползает, жалобно пищит, ищет розетку' };
+    if (dirt >= 75) return { mood: 'чумазый', how: 'в пятнах соуса и смазки, оставляет следы гусениц' };
+    if (wear >= 75) return { mood: 'скрипит', how: 'скрипит на каждом повороте и жалуется бипами' };
+    if (love < 25) return { mood: 'скучает', how: 'ездит следом и смотрит «глазами», ждёт внимания' };
+    if (love >= 80 && c >= 40) return { mood: 'счастлив', how: 'кружится на месте и бипает мелодию' };
     const row = D.SHARIK_MOODS.find(r => c >= r[0]) || D.SHARIK_MOODS[D.SHARIK_MOODS.length - 1];
-    let mood = row[1], how = row[2];
-    if (c > 15 && (Number(s.love) || 0) < 25) { mood = 'обижен'; how = 'отвернулся к стене и демонстративно мигает'; }
-    else if (c > 40 && (Number(s.love) || 0) > 80) { mood = 'счастлив'; how = 'кружится на месте и бипает мелодию'; }
-    return { mood, how };
-}
-export function sharikDo(act) {
-    const s = sharikTick();
-    const lines = {
-        charge: ['Шарик на зарядке. Счастливо мигает.', 'Подключён. Бипнул так, будто ему подарили щенка.'],
-        pet: ['Шарика погладили. Он теперь будет ездить за вами весь день.', 'Шарик довольно жужжит и тычется в ладонь.'],
-        take: ['Шарик едет с вами. Я бы на вашем месте следил за ступеньками.'],
-        leave: ['Шарик остался. Смотрит вслед «глазами». Мне неловко за вас.'],
-    };
-    if (act === 'charge') s.charge = 100;
-    if (act === 'pet') s.love = clamp((Number(s.love) || 0) + 25);
-    if (act === 'take') s.with = true;
-    if (act === 'leave') s.with = false;
-    const t = rnd(lines[act] || ['Шарик бипнул.']);
-    s.log.unshift({ t, at: clock().date });
-    s.log = s.log.slice(0, 20);
-    save();
-    return t;
+    return { mood: row[1], how: row[2] };
 }
 
 // ───────────── присутствие Арта в сцене ─────────────
@@ -482,7 +483,7 @@ let liveInit = '';
 export const clearLive = () => { liveInit = ''; };
 function maybeInit(type) {
     if (!type || ['quiet', 'impersonate', 'continue'].includes(type)) return;
-    if (!present()) { liveInit = ''; return; }
+    if (!present() || M().home?.dnd) { liveInit = ''; return; }
     const chance = D.INIT[cfg().init]?.[0] || 0;
     if (shots().some(s => s.kind === 'init')) return;
     if (Math.random() >= chance) { liveInit = ''; return; }
@@ -518,7 +519,9 @@ export function promptNote(type) {
         if (sh.with && (Number(sh.charge) || 0) < 15) st.push('Шарик почти сел и жалобно пищит');
         if (e.id === 'shield' && (Number(m.hydra.legend) || 0) < 50) st.push(`легенда «дочь Пирса» трещит (держится на ${m.hydra.legend}%)`);
         parts.push(`[А.Р.Т.У.Р. рядом — ${e.title}. ${voice()}${st.length ? `\nСейчас у Арта: ${st.join('; ')}.` : ''}\nЕсли Арт говорит — коротко, его голосом, без лекций; за Хеди не решает.]`);
-        if (m.sharik.with && Math.random() < 0.25) parts.push(`[Шарик рядом: ${sharikMood().how}. Можно мелькнуть одной деталью.]`);
+        if (m.home?.dnd) parts.push('[Режим «не беспокоить»: Арт молчит, разве что пожар.]');
+        const acc = { santa: 'в шапке Санты', bow: 'с бантиком', scarf: 'в шарфе А.И.М.', lamp: 'с налобным фонариком', sticker: 'с наклейкой «Не кормить»' }[m.sharik.acc] || '';
+        if (m.sharik.with && Math.random() < 0.25) parts.push(`[Шарик рядом${acc ? `, ${acc}` : ''}: ${sharikMood().how}. Можно мелькнуть одной деталью.]`);
     } else if (e.id === 'ssr') {
         const live = ops().filter(o => o.status === 'live');
         if (live.length) parts.push(`[СНР: идёт операция ${live.map(o => `«${o.name}»`).join(', ')}.]`);
@@ -533,8 +536,8 @@ export function promptNote(type) {
 const CHRON_RULE = `
 
 art — что в этом посте было по части лаборатории, операций и компьютера Хеди (строка «АРТУР» во входе). Только то, что правда есть в посте; ничего не было — {}.
-{"lab":[{"id":"","note":"что сделали, 4–12 слов"}],"newlab":"","ops":[{"id":"","status":"","note":""}],"newop":{"name":"","goal":"","where":""},"stones":0,"tremor":false,"hurt":[{"who":"","what":""}],"sharik":"","dossier":[{"who":"","what":""}],"remark":"","idea":""}
-lab — по каким проектам из списка работали в посте (id из списка). newlab — название нового проекта, если начали что-то новое, иначе "". ops — у каких операций из списка сменился статус (plan|live|hold|done|fail) или что произошло, note 4–12 слов. newop — новая операция, если её задумали или поручили, иначе пустые строки. stones — как изменилась нестабильность энергии Камней в Хеди, от -10 до 10 (выброс силы, перегрузка — плюс; покой, сон — минус), 0 — не видно или Камней нет. tremor — после перегрузки дрожат руки. hurt — кто ранен и чем, коротко. sharik — что было с Шариком (зарядили, гладили, путался под ногами), иначе "". dossier — что из поста стоит записать кому-то в личное дело (поступок, ранение, срыв, нарушение, заслуга, новый факт биографии), who — имя, what — 6–16 слов сухим канцеляритом; обычно пусто. remark — реплика АРТУРа себе в журнал про этот пост, 6–18 слов, его голосом: сухо, с сарказмом, по-дружески ворчит; не о чем — "". idea — что АРТУР мог бы сделать САМ в ближайших сценах, 8–20 слов, иначе "".`;
+{"lab":[{"id":"","note":"что сделали, 4–12 слов"}],"newlab":"","ops":[{"id":"","status":"","note":""}],"newop":{"name":"","goal":"","where":""},"stones":0,"tremor":false,"hurt":[{"who":"","what":""}],"sharik":"","home":"","dossier":[{"who":"","what":""}],"remark":"","idea":""}
+lab — по каким проектам из списка работали в посте (id из списка). newlab — название нового проекта, если начали что-то новое, иначе "". ops — у каких операций из списка сменился статус (plan|live|hold|done|fail) или что произошло, note 4–12 слов. newop — новая операция, если её задумали или поручили, иначе пустые строки. stones — как изменилась нестабильность энергии Камней в Хеди, от -10 до 10 (выброс силы, перегрузка — плюс; покой, сон — минус), 0 — не видно или Камней нет. tremor — после перегрузки дрожат руки. hurt — кто ранен и чем, коротко. sharik — что было с Шариком (зарядили, гладили, почистили, испачкался, путался под ногами), иначе "". home — что в посте было с умным домом квартиры (кофемашина, свет, климат, стирка, охрана, лапы-манипуляторы, кошка Альпин, фиалки), коротко, иначе "". dossier — что из поста стоит записать кому-то в личное дело (поступок, ранение, срыв, нарушение, заслуга, новый факт биографии), who — имя, what — 6–16 слов сухим канцеляритом; обычно пусто. remark — реплика АРТУРа себе в журнал про этот пост, 6–18 слов, его голосом: сухо, с сарказмом, по-дружески ворчит; не о чем — "". idea — что АРТУР мог бы сделать САМ в ближайших сценах, 8–20 слов, иначе "".`;
 
 export function chronHook() {
     const c = cfg();
@@ -588,7 +591,10 @@ export function afterPost(i, j) {
     if (sh) {
         const s = sharikTick();
         if (/заряд|розетк|подключ/i.test(sh)) s.charge = 100;
-        if (/глад|обнял|похвал|ласк/i.test(sh)) s.love = clamp((Number(s.love) || 0) + 20);
+        if (/глад|обнял|похвал|ласк/i.test(sh)) { s.love = clamp((Number(s.love) || 0) + 20); s.sad = false; }
+        if (/почист|помыл|протёр|протер/i.test(sh)) s.dirt = 0;
+        if (/смазал|починил|подкрут/i.test(sh)) s.wear = 0;
+        if (/испачк|грязн|лужу|соус|в муке/i.test(sh)) s.dirt = clamp((Number(s.dirt) || 0) + 30);
         s.log.unshift({ t: cut(sh, 120), at: clock().date, mes: i });
         s.log = s.log.slice(0, 20);
     }
