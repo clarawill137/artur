@@ -4,6 +4,7 @@
 import * as C from './core.js';
 import * as D from './data.js';
 import * as DS from './dossier.js';
+import * as H from './history.js';
 
 const esc = C.esc;
 const ui = { app: null, id: null, modal: null, dice: null, typed: new Set(), scroll: {}, busy: new Set(), filter: '' };
@@ -56,6 +57,9 @@ const avatarOf = (name, person) => {
     const l = esc(String(name || '?').trim().charAt(0).toUpperCase());
     return `<span class="ar-ava">${src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<i>${l}</i></span>`;
 };
+
+const HIST_LABEL = { ops: 'операции', lab: 'проекты', med: 'медблок', bases: 'объекты', files: 'документы' };
+const histRow = (kind) => `<div class="ar-row">${btn('hist', busy(`hist:${kind}`) ? '<span class="ar-spin"></span> Арт читает историю…' : `${ic('sparkles')} ${C.era().artur ? 'Арт' : 'Архив'}: ${HIST_LABEL[kind]} из истории`, `data-v="${kind}"`, 'ghost wide hist')}</div>`;
 
 // ───────────── окно ─────────────
 
@@ -247,6 +251,7 @@ function labHtml(e) {
         ${stageDots(p)}${p.stage < 4 ? bar(p.pct) : ''}
         <div class="ar-card-s">${(p.team || []).length ? esc(p.team.join(', ')) : 'одна'}${p.log[0] ? ` · ${esc(C.cut(p.log[0].t, 60))}` : ''}</div></button>`;
     return `${head(appLabel('lab', e), btn('newProject', ic('plus'), '', 'ico'))}
+    ${histRow('lab')}
     ${act.length ? `<div class="ar-list">${act.map(card).join('')}</div>` : empty('Проектов нет.', `<br>${btn('newProject', `${ic('plus')} Завести проект`)}`)}
     ${done.length ? `${sec('Готово', String(done.length))}<div class="ar-list">${done.map(card).join('')}</div>` : ''}`;
 }
@@ -256,7 +261,7 @@ function projectHtml(e) {
     if (!p) return `${head('Проект')}${empty('Проект не найден.')}`;
     const pend = C.shots().find(s => s.kind === 'lab' && s.key === p.id);
     return `${head(p.name, btn('editProject', ic('pencil'), `data-id="${esc(p.id)}"`, 'ico'))}
-    ${p.fresh ? `<div class="ar-fresh">Летописец завёл этот проект сам. ${btn('keep', `${ic('check')} Оставить`, `data-kind="project" data-id="${esc(p.id)}"`, 'sm')} ${btn('delProject', `${ic('x')} Не надо`, `data-id="${esc(p.id)}"`, 'sm ghost')}</div>` : ''}
+    ${p.fresh ? `<div class="ar-fresh">${p.src === 'hist' ? 'Арт вытащил этот проект из истории.' : 'Летописец завёл этот проект сам.'} ${btn('keep', `${ic('check')} Оставить`, `data-kind="project" data-id="${esc(p.id)}"`, 'sm')} ${btn('delProject', `${ic('x')} Не надо`, `data-id="${esc(p.id)}"`, 'sm ghost')}</div>` : ''}
     ${imgBox(p.img, 'drawProject', p.id, e.skin === 'paper' ? 'Чертёж на кальке' : 'Голограмма-чертёж')}
     <div class="ar-row wrap">${chip(D.fieldName(p.field))}${(p.team || []).map(t => chip(t, 'who')).join('')}</div>
     ${stageDots(p, 'setStage')}
@@ -264,7 +269,7 @@ function projectHtml(e) {
     ${p.bans ? `<div class="ar-ban">${ic('lock')}<span>${esc(p.bans)}</span></div>` : ''}
     ${p.note ? `<p class="ar-note">${esc(p.note)}</p>` : ''}
     ${pend ? `<div class="ar-shot"><span>Исход ждёт сцены: ${esc(C.cut(pend.text.replace(/^\[|\]$/g, ''), 140))}</span><button class="ar-ico" data-aact="disarm" data-id="${pend.at}">${ic('x')}</button></div>` : ''}
-    <div class="ar-row">${p.stage < 4 ? btn('dice', `${ic('dice')} Опыт`, `data-id="${esc(p.id)}"`, 'primary') : ''}${btn('addLog', `${ic('notes')} Запись`, `data-kind="project" data-id="${esc(p.id)}"`, 'ghost')}</div>
+    <div class="ar-row">${p.stage < 4 ? btn('dice', `${ic('dice')} Опыт`, `data-id="${esc(p.id)}"`, 'primary') : ''}${btn('addLog', `${ic('notes')} Запись`, `data-kind="project" data-id="${esc(p.id)}"`, 'ghost')}${btn('histOne', busy(`one:${p.id}`) ? '<span class="ar-spin"></span>' : ic('sparkles'), `data-kind="project" data-id="${esc(p.id)}" title="Дополнить из истории"`, 'ico ghost')}</div>
     ${sec('Журнал', String(p.log.length))}
     <div class="ar-log">${p.log.map(l => `<div class="ar-lg ${esc(l.kind)}"><span>${esc(l.at || '')}</span><p>${esc(l.t)}</p></div>`).join('') || empty('Пусто.')}</div>
     <div class="ar-row end">${btn('delProject', `${ic('trash')} Удалить проект`, `data-id="${esc(p.id)}"`, 'ghost danger sm')}</div>`;
@@ -320,6 +325,7 @@ function opsHtml(e) {
         ${o.goal ? `<p>${esc(C.cut(o.goal, 120))}</p>` : ''}
         <div class="ar-card-s">${esc([o.where, o.when].filter(Boolean).join(' · ') || '—')}${o.team?.length ? ` · ${esc(o.team.join(', '))}` : ''} · риск ${'●'.repeat(o.risk || 0)}${'○'.repeat(5 - (o.risk || 0))}</div></button>`;
     return `${head(appLabel('ops', e), btn('newOp', ic('plus'), '', 'ico'))}
+    ${histRow('ops')}
     ${live.length ? `<div class="ar-list">${live.map(card).join('')}</div>` : empty('Активных операций нет.', `<br>${btn('newOp', `${ic('plus')} Новая операция`)}`)}
     ${done.length ? `${sec('Архив операций', String(done.length))}<div class="ar-list">${done.map(card).join('')}</div>` : ''}`;
 }
@@ -329,8 +335,9 @@ function opHtml(e) {
     if (!o) return `${head('Операция')}${empty('Операция не найдена.')}`;
     const id = esc(o.id);
     return `${head(o.name, btn('editOp', ic('pencil'), `data-id="${id}"`, 'ico'))}
-    ${o.fresh ? `<div class="ar-fresh">Летописец завёл операцию сам. ${btn('keep', `${ic('check')} Оставить`, `data-kind="op" data-id="${id}"`, 'sm')} ${btn('delOp', `${ic('x')} Не надо`, `data-id="${id}"`, 'sm ghost')}</div>` : ''}
+    ${o.fresh ? `<div class="ar-fresh">${o.src === 'hist' ? 'Арт вытащил операцию из истории.' : 'Летописец завёл операцию сам.'} ${btn('keep', `${ic('check')} Оставить`, `data-kind="op" data-id="${id}"`, 'sm')} ${btn('delOp', `${ic('x')} Не надо`, `data-id="${id}"`, 'sm ghost')}</div>` : ''}
     ${seg('opStatus', o.status, D.STATUS_OPS, `data-id="${id}"`)}
+    <div class="ar-row">${btn('histOne', busy(`one:${o.id}`) ? '<span class="ar-spin"></span> Арт читает историю…' : `${ic('sparkles')} Дополнить из истории`, `data-kind="op" data-id="${id}"`, 'ghost wide hist')}</div>
     <div class="ar-kv">
         <div><span>Цель</span><p>${esc(o.goal || '—')}</p></div>
         <div><span>Где · когда</span><p>${esc([o.where, o.when].filter(Boolean).join(' · ') || '—')}</p></div>
@@ -355,6 +362,7 @@ const stampHtml = (d, cls = '') => { const st = DS.statusOf(d.status); return st
 const groupOfList = (x) => (x.main ? 'main' : x.circle ? 'circle' : 'other');
 
 function dossierHtml(e) {
+    DS.seedRoster(e);
     const list = C.dossierList();
     const f = C.norm(ui.filter);
     const groups = { main: 'Главные', circle: (D.ERA_GROUP[e.id] ? DS.agency(e).short : 'Круг'), other: 'Прочие' };
@@ -364,6 +372,7 @@ function dossierHtml(e) {
     const shown = list.filter(x => (!g || groupOfList(x) === g) && (!f || C.norm(`${x.name} ${x.person?.role || ''} ${DS.rec(x.name, false)?.code || ''}`).includes(f)));
     const paper = paperOn(e);
     return `${head(appLabel('dossier', e), btn('newPerson', ic('plus'), '', 'ico'))}
+    <div class="ar-row">${btn('findPeople', busy('people') ? '<span class="ar-spin"></span> Архивист листает лорбуки…' : `${ic('search')} Найти людей в лоре`, '', 'ghost wide hist')}</div>
     <input class="ar-search" data-aset="filter" placeholder="Имя, роль или позывной" value="${esc(ui.filter)}">
     ${Object.keys(counts).length > 1 ? `<div class="ar-seg">${[['', `Все · ${list.length}`], ...Object.entries(groups).filter(([k]) => counts[k]).map(([k, l]) => [k, `${l} · ${counts[k]}`])].map(([k, l]) => `<button class="${k === g ? 'on' : ''}" data-aact="dsGroup" data-v="${k}">${esc(l)}</button>`).join('')}</div>` : ''}
     <div class="ar-grid">${shown.map(x => {
@@ -375,7 +384,7 @@ function dossierHtml(e) {
             <span class="ds-pic">${src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<i>${esc(String(x.name).trim().charAt(0).toUpperCase())}</i>${st[2] ? `<em class="ds-mini">${esc(st[2])}</em>` : ''}</span>
             <span class="ds-code">${esc(d.code || '—')}</span>
             <b>${esc(d.fullname || x.name)}</b>
-            <small>${esc(d.post || x.person?.role || (x.main ? 'главный герой' : ''))}</small>
+            <small>${esc(d.post || x.person?.role || (x.main ? 'главный герой' : ''))}</small>${x.group && !x.circle ? `<small class="ds-grp">${esc(x.group)}</small>` : ''}
             <span class="ds-threat">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= (d.threat || 1) ? 'on' : ''}"></i>`).join('')}</span>
         </button>`;
     }).join('') || empty('Никого. Люди берутся из вкладки «Люди» в Life, главные — из группы.')}</div>`;
@@ -507,6 +516,7 @@ function medHtml(e) {
     const pats = C.inEra(m.patients);
     const v = C.clamp(m.med.stones);
     return `${head(appLabel('med', e), btn('newPatient', ic('plus'), '', 'ico'))}
+    ${histRow('med')}
     <div class="ar-panel">
         <div class="ar-card-h"><b>Хеди</b>${m.med.tremor ? chip('тремор', 'bad') : ''}</div>
         ${e.stones ? `<div class="ar-gauge ${v >= 70 ? 'bad' : v >= 45 ? 'warn' : ''}"><svg viewBox="0 0 120 66"><path class="g0" d="M10 60a50 50 0 0 1 100 0"/><path class="g1" d="M10 60a50 50 0 0 1 100 0" style="stroke-dasharray:${(v / 100) * 157} 157"/></svg><b>${v}%</b><span>нестабильность Камней · ${esc(C.stonesWord(v))}</span></div>
@@ -528,6 +538,7 @@ function basesHtml(e) {
     const list = C.bases();
     const here = C.baseHere();
     return `${head(appLabel('bases', e), btn('newBase', ic('plus'), '', 'ico'))}
+    ${histRow('bases')}
     <div class="ar-list">${list.map(b => `<button class="ar-card base" data-aact="go" data-app="bases" data-id="${esc(b.id)}">
         ${b.img ? `<span class="ar-cam" style="background-image:url('${esc(b.img)}')"></span>` : '<span class="ar-cam ph"></span>'}
         <div class="ar-card-h"><b>${esc(b.name)}</b>${here?.id === b.id ? chip('вы здесь', 'here') : ''}${chip((D.STATUS_BASE.find(s => s[0] === b.status) || D.STATUS_BASE[0])[1], baseCls(b.status))}</div>
@@ -559,6 +570,7 @@ function filesHtml(e) {
             <span class="ar-file-ic">${ic(f.lock ? 'lock' : 'unlock')}</span><span class="ar-file-t"><b>${esc(f.name)}</b><em>${esc(C.cut(f.text || '', 90)) || (f.lock ? 'доступ закрыт' : 'пусто')}</em></span></button>`).join('')}</div>`;
     };
     return `${head(appLabel('files', e), btn('newFile', ic('plus'), '', 'ico'))}
+    ${histRow('files')}
     <p class="ar-mute small">Запертое открывается само, когда в посте звучат ключевые слова папки, или руками.</p>
     ${group('protocol', 'Протоколы')}${group('archive', e.skin === 'paper' ? 'Секретные дела' : 'Архив')}
     ${list.length ? '' : empty('Пусто.')}`;
@@ -631,10 +643,13 @@ const tog = (k, label, on) => `<button class="ar-tog${on ? ' on' : ''}" data-aac
 
 // ───────────── модалки и формы ─────────────
 
-function paintModal() {
+function paintModal(force = false) {
     const box = document.querySelector('#ar-app .ar-modal');
     if (!box) return;
-    if (!ui.modal) { box.classList.remove('on'); box.innerHTML = ''; return; }
+    if (!ui.modal) { box.classList.remove('on'); box.innerHTML = ''; ui.painted = null; return; }
+    // форму с набранным текстом не перерисовываю на каждый чих — только когда меняю её сама
+    if (!force && ui.modal.kind === 'form' && ui.painted === ui.modal && box.querySelector('[data-fk]')) return;
+    ui.painted = ui.modal;
     let html = '';
     if (ui.modal.kind === 'dice') html = diceHtml();
     else if (ui.modal.kind === 'file') { const f = C.files().find(x => x.id === ui.modal.id); html = f ? fileModal(f) : ''; }
@@ -645,7 +660,7 @@ function paintModal() {
 }
 function closeModal() { ui.modal = null; ui.dice = null; paintModal(); }
 
-function form(title, fields, onSave) { ui.modal = { kind: 'form', title, fields, onSave }; paintModal(); setTimeout(() => document.querySelector('#ar-app .ar-sheet input, #ar-app .ar-sheet textarea')?.focus(), 60); }
+function form(title, fields, onSave, ai = '') { ui.modal = { kind: 'form', title, fields, onSave, ai }; paintModal(); setTimeout(() => document.querySelector('#ar-app .ar-sheet input, #ar-app .ar-sheet textarea')?.focus(), 60); }
 function formHtml(f) {
     return `<div class="ar-mh"><b>${esc(f.title)}</b><button class="ar-ico" data-aact="closeModal">${ic('x')}</button></div>
     <div class="ar-form">${f.fields.map(x => {
@@ -657,7 +672,8 @@ function formHtml(f) {
         else inp = `<input ${n} type="${x.type || 'text'}" value="${esc(v)}" placeholder="${esc(x.ph || '')}">`;
         return `<label>${esc(x.label)}${inp}</label>`;
     }).join('')}</div>
-    <div class="ar-row">${btn('formSave', `${ic('check')} Сохранить`, '', 'primary wide')}</div>`;
+    <div class="ar-row">${f.ai ? btn('formAI', ic('sparkles'), 'title="Заполнить из истории по названию"', 'ico ghost') : ''}${btn('formSave', `${ic('check')} Сохранить`, '', 'primary wide')}</div>
+    ${f.ai ? '<p class="ar-mute small">✦ — впиши название, и Арт подтянет остальное из истории.</p>' : ''}`;
 }
 function formVals() {
     const out = {};
@@ -678,7 +694,7 @@ function projectForm(p) {
     ], (v) => {
         const rec = { name: v.name.trim() || 'Без названия', field: v.field, team: listOf(v.team), note: v.note.trim(), bans: v.bans.trim() };
         if (isNew) { const np = C.addProject(rec); ui.id = np.id; ui.app = 'lab'; } else { Object.assign(p, rec); C.save(); }
-    });
+    }, 'project');
 }
 function opForm(o) {
     const isNew = !o;
@@ -691,7 +707,7 @@ function opForm(o) {
     ], (v) => {
         const rec = { name: v.name.trim() || 'Без названия', goal: v.goal.trim(), where: v.where.trim(), when: v.when.trim(), team: listOf(v.team) };
         if (isNew) { const no = C.addOp(rec); ui.id = no.id; ui.app = 'ops'; } else { Object.assign(o, rec); C.save(); }
-    });
+    }, 'op');
 }
 function baseForm(b) {
     const isNew = !b;
@@ -797,6 +813,41 @@ export async function onClick(ev) {
         case 'go': go(el.dataset.app || null, id || null); return;
         case 'closeModal': closeModal(); return;
         case 'zoom': ui.modal = { kind: 'zoom', src: el.dataset.src }; paintModal(); return;
+        case 'formAI': {
+            const f = ui.modal;
+            if (!f?.ai) return;
+            const vals = formVals();
+            for (const x of f.fields) if (vals[x.k] !== undefined) x.value = vals[x.k];
+            if (busy('formAI')) return;
+            ui.busy.add('formAI');
+            el.innerHTML = '<span class="ar-spin"></span>';
+            try {
+                const res = await H.formFill(f.ai, vals);
+                let n = 0;
+                for (const x of f.fields) if (res[x.k] && (!String(vals[x.k] || '').trim() || (x.k === 'field' && vals[x.k] === 'other'))) { x.value = res[x.k]; n++; }
+                C.toast('info', n ? `Подтянул полей: ${n}` : 'В истории про это ничего нового');
+            } catch (err) { C.toast('warning', esc(String(err?.message || err))); }
+            ui.busy.delete('formAI');
+            paintModal(true);
+            return;
+        }
+        case 'hist': {
+            const fn = { ops: H.extractOps, lab: H.extractLab, med: H.extractMed, bases: H.extractBases, files: H.extractFiles }[v];
+            if (!fn) return;
+            run(`hist:${v}`, () => fn(), (r) => {
+                const msg = typeof r === 'number' ? (r ? `Обновлено записей: ${r}` : 'Нового в истории нет') : (r.added || r.updated ? `Новых: ${r.added} · обновлено: ${r.updated}` : 'Нового в истории нет');
+                C.toast('info', msg);
+            });
+            return;
+        }
+        case 'histOne': {
+            const kind = el.dataset.kind;
+            const obj = kind === 'op' ? C.opById(id) : C.projectById(id);
+            if (!obj) return;
+            run(`one:${id}`, () => (kind === 'op' ? H.fillOp(obj) : H.fillProject(obj)), (n) => C.toast('info', n ? `Дополнено: ${n}` : 'Нового в истории нет'));
+            return;
+        }
+        case 'findPeople': run('people', () => DS.findPeople(), (n) => C.toast('info', n ? `Новых дел: ${n}` : 'Все, кто есть в лоре, уже в картотеке')); return;
         case 'formSave': { const f = ui.modal; if (!f?.onSave) return; f.onSave(formVals()); closeModal(); after(); return; }
 
         // рабочий стол

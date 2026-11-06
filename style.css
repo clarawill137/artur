@@ -368,6 +368,9 @@
 #ar-app .ar-dcard .ds-code { margin-top: 4px; max-width: 100%; padding: 1px 8px; border: 1px solid var(--line2); color: var(--hi); font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #ar-app .ar-dcard b { margin-top: 4px; max-width: 100%; color: var(--hi); font-size: 13.5px; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 #ar-app .ar-dcard small { max-width: 100%; color: var(--dim); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#ar-app .ar-dcard .ds-grp { color: var(--warn); font: 10.5px var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+#ar-app .ar-dcard.paper .ds-grp { color: #a8433a; font-family: inherit; }
+#ar-app .ar-btn.hist { border-style: dashed; color: var(--c); }
 #ar-app .ds-threat { display: inline-flex; gap: 4px; margin-top: 4px; }
 #ar-app .ds-threat i { width: 7px; height: 7px; border: 1px solid var(--line2); transform: rotate(45deg); }
 #ar-app .ds-threat i.on { background: var(--warn); border-color: var(--warn); }

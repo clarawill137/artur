@@ -329,7 +329,7 @@ export function dossierList() {
     const ppl = lifePeople().filter(x => !re || re.test(`${x.group || ''} ${x.role || ''}`));
     const out = cast().map(n => ({ name: n, main: true, person: lifePeople().find(x => norm(x.name) === norm(n)) }));
     for (const x of ppl) if (!out.some(o => norm(o.name) === norm(x.name))) out.push({ name: x.name, person: x, circle: !!re });
-    for (const n of Object.keys(M().dossier[e.id] || {})) if (!out.some(o => norm(o.name) === norm(n))) out.push({ name: n, own: true });
+    for (const [n, d] of Object.entries(M().dossier[e.id] || {})) if (!out.some(o => norm(o.name) === norm(n))) out.push({ name: n, own: true, group: d?.group || '', circle: !!re && re.test(`${d?.group || ''} ${d?.post || ''}`) });
     return out;
 }
 export function dossierOf(name, create = false) {

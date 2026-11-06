@@ -2,6 +2,8 @@
 // заполнение моделью на дату истории, оценки от людей эпохи (Земо, Баретт, Романофф, Картер…), записи в деле.
 
 import * as C from './core.js';
+import * as D from './data.js';
+import * as L from './lore.js';
 
 const esc = C.esc;
 const str = (v) => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v).trim());
@@ -146,20 +148,6 @@ export function tokensOf(name, person, d) {
     return [...out];
 }
 
-const isMemory = (e) => !!e?.stmemorybooks || /^\s*\d{1,4}\s*[-–—.:]\s*\S/.test(e?.comment || '');
-let wiMod = null;
-async function wi() { if (wiMod !== null) return wiMod; try { wiMod = await import('/scripts/world-info.js'); } catch { wiMod = false; } return wiMod; }
-const bookCache = new Map();
-async function loadBook(name) {
-    const hit = bookCache.get(name);
-    if (hit && Date.now() - hit.t < 5 * 60e3) return hit.data;
-    const c = SillyTavern.getContext();
-    let data = null;
-    try { data = typeof c.loadWorldInfo === 'function' ? await c.loadWorldInfo(name) : await (await wi())?.loadWorldInfo?.(name); } catch { /* */ }
-    bookCache.set(name, { t: Date.now(), data });
-    return data;
-}
-
 /** Всё, что известно о человеке: карточка, лорбуки, «Люди» Life. Возвращает текст до ~12 000 знаков. */
 export async function loreFor(name, person, d) {
     const c = SillyTavern.getContext();
@@ -176,24 +164,21 @@ export async function loreFor(name, person, d) {
         return s;
     };
     // карточка персонажа
-    const ch = (c.characters || []).find(x => x?.name && strong.some(t => C.norm(x.name).includes(t)));
+    const ch = (c.characters || []).find(x => x?.name && same(x.name, name, person, d));
     if (ch) {
         parts.push(`## Карточка «${ch.name}»\n${C.cut(str(ch.description || ch.data?.description), 4500)}${ch.personality ? `\n${C.cut(str(ch.personality), 900)}` : ''}`);
         for (const e of arr(ch.data?.character_book?.entries)) {
-            if (e.enabled === false || !str(e.content) || isMemory(e)) continue;
+            if (e.enabled === false || !str(e.content) || L.isMemory(e)) continue;
             const s = scoreEntry(e.comment || e.name, e.keys, e.content);
             if (s >= 6) scored.push({ s, t: `### ${str(e.comment || e.name)}\n${str(e.content)}` });
         }
     }
-    // лорбуки
-    const m = await wi();
-    for (const b of [...(m?.world_names || [])]) {
-        const data = await loadBook(b);
-        for (const e of Object.values(data?.entries || {})) {
-            if (e.disable || !str(e.content) || isMemory(e)) continue;
-            const s = scoreEntry(e.comment, e.key, e.content);
-            if (s >= 6) scored.push({ s, t: `### ${str(e.comment) || (e.key || []).join(', ')} (${b})\n${str(e.content)}` });
-        }
+    // лорбуки (без памяти сцен) и отдельно память сцен — свежие факты из истории
+    const mems = [];
+    for (const { book, e, mem } of await L.entries(true)) {
+        const s = scoreEntry(e.comment, e.key, e.content);
+        if (s < 6) continue;
+        (mem ? mems : scored).push({ s, t: `### ${str(e.comment) || (e.key || []).join(', ')} (${book})\n${str(e.content)}` });
     }
     scored.sort((a, b) => b.s - a.s);
     const seen = new Set();
@@ -207,8 +192,13 @@ export async function loreFor(name, person, d) {
         parts.push(piece);
         len += piece.length;
     }
+    mems.sort((a, b) => b.s - a.s);
+    let ml = 0;
+    const mp = [];
+    for (const x of mems) { const piece = C.cut(x.t, 1800); if (ml + piece.length > 4500) continue; mp.push(piece); ml += piece.length; }
+    if (mp.length) parts.push(`## Память сцен, где он есть\n${mp.join('\n\n')}`);
     if (person) parts.push(`## Вкладка «Люди» (Life)\n${[person.group && `круг: ${person.group}`, person.role && `роль: ${person.role}`, person.age && `возраст: ${person.age}`, person.look && `внешность: ${person.look}`, (person.traits || []).length && `черты: ${person.traits.join(', ')}`, person.voice && `манера: ${person.voice}`, person.bio, person.toUser && `к игроку: ${person.toUser}`, person.secret && `секрет: ${person.secret}`].filter(Boolean).join('\n')}`);
-    return { text: parts.join('\n\n'), found: scored.length + (ch ? 1 : 0) + (person ? 1 : 0) };
+    return { text: parts.join('\n\n'), found: scored.length + (ch ? 1 : 0) + (person ? 1 : 0) + mp.length };
 }
 
 function fileText(d, name) {
@@ -292,4 +282,71 @@ export function assessScene(name, a) {
 export function fileScene(name) {
     const d = rec(name);
     C.arm('file', `[Личное дело ${name} (${agency().short}, № ${fileNo(name)}) в этом ответе оказывается на столе или на голограмме: кто-то его открывает и замечает пару деталей. Из дела: ${C.cut(fileText(d, name).replace(/\n/g, '; '), 700)}]`, { key: name });
+}
+
+// ───────────── кто есть кто: один человек под разными именами ─────────────
+
+const canon = (t) => { for (const [ru, en] of TRANS) if (t === en) return ru; return t; };
+const idTokens = (name, person, d) => new Set(tokensOf(name, person, d).map(canon).filter(t => t.length >= 3));
+/** Совпадение по имени: целиком, или хотя бы два слова (с учётом рус/англ), или одно, если имя из одного слова. */
+export function same(a, b, pa, db) {
+    if (C.norm(a) === C.norm(b)) return true;
+    const A = new Set(tokensOf(a).map(canon));
+    const Bt = idTokens(b, pa, db);
+    const hit = [...A].filter(t => Bt.has(t)).length;
+    return hit >= 2 || (hit >= 1 && (A.size === 1 || C.norm(b).split(' ').length === 1));
+}
+
+// ───────────── состав эпохи ─────────────
+
+/** Один раз на эпоху заводит дела на её людей (А.И.М., Щ.И.Т. и Гидра, СНР и Ревущие…). Удалённые не возвращаются. */
+export function seedRoster(e = C.era()) {
+    const m = C.M();
+    m.rosterDone = m.rosterDone && typeof m.rosterDone === 'object' ? m.rosterDone : {};
+    if (m.rosterDone[e.id]) return 0;
+    const have = C.dossierList();
+    let n = 0;
+    for (const r of D.ROSTER[e.id] || []) {
+        if (have.some(x => same(r.name, x.name, x.person))) continue;
+        const d = rec(r.name);
+        d.group = r.group; d.post = d.post || r.post; d.aliases = d.aliases || r.aliases || '';
+        if (r.status) d.status = r.status;
+        d.seed = true;
+        n++;
+    }
+    m.rosterDone[e.id] = true;
+    C.save();
+    return n;
+}
+
+/** Ищет в лорбуках людей эпохи, на которых ещё нет дела (Вальден, Вершинин…). */
+export async function findPeople() {
+    const e = C.era();
+    const k = C.clock();
+    const have = C.dossierList().map(x => x.name);
+    const lines = [];
+    let len = 0;
+    for (const { book, e: en } of await L.entries(false)) {
+        const t = `${str(en.comment) || (en.key || []).slice(0, 3).join(', ')} [${book}]: ${C.cut(str(en.content).replace(/\s+/g, ' '), 220)}`;
+        if (len + t.length > 16000) break;
+        lines.push(t);
+        len += t.length;
+    }
+    if (!lines.length) throw new Error('Лорбуки не читаются');
+    const sys = `Ты — архивист отдела кадров (${agency(e).short}). По оглавлению лорбуков найди ЛЮДЕЙ (и персонажей с характером), которые в эпохе «${e.name}» на дату ${k.date || 'истории'} существуют и имеют отношение к Хеди Барлоу или её организации: соратники, начальство, враги, люди из прошлого. Организации, места, события пропусти. На кого дело уже есть — пропусти.
+Ответ — только JSON: {"people":[{"name":"имя как в лоре","group":"круг: организация или «враги», «прошлое»…","post":"кто он, 2–6 слов","aliases":"другие имена через запятую","status":"active|reserve|civil|retired|custody|classified|mia|dead|enemy"}]}
+Не больше 12 человек, самые важные.`;
+    const out = await C.ask(sys, `Дела уже есть: ${have.join(', ')}\n\nОглавление лорбуков:\n${lines.join('\n')}`, 1500);
+    const j = C.jsonOf(out);
+    let n = 0;
+    for (const x of arr(j?.people)) {
+        const name = str(x?.name);
+        if (!name || C.dossierList().some(y => same(name, y.name, y.person))) continue;
+        const d = rec(name);
+        d.group = C.cut(str(x.group), 40); d.post = C.cut(str(x.post), 80); d.aliases = C.cut(str(x.aliases), 160);
+        if (STATUS.some(s => s[0] === str(x.status))) d.status = str(x.status);
+        n++;
+    }
+    C.save();
+    return n;
 }
