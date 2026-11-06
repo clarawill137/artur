@@ -8,6 +8,7 @@ import * as H from './history.js';
 import * as HM from './home.js';
 import * as HD from './homedata.js';
 import * as P from './pet.js';
+import * as GR from './grid.js';
 
 const esc = C.esc;
 const ui = { app: null, id: null, modal: null, dice: null, typed: new Set(), scroll: {}, busy: new Set(), filter: '' };
@@ -153,7 +154,7 @@ function screen(e) {
         case 'bases': return ui.id ? baseHtml(e) : basesHtml(e);
         case 'files': return filesHtml(e);
         case 'sharik': return sharikHtml(e);
-        case 'home': return homeHtml(e);
+        case 'home': return ui.id === 'grid' ? gridHtml(e) : homeHtml(e);
         case 'hydra': return hydraHtml(e);
         case 'artur': return arturHtml(e);
         default: return deskHtml(e);
@@ -652,7 +653,8 @@ function homeHtml(e) {
         <div class="ar-guard">${SHIELD(st)}<div><b>${st === 'ok' ? 'Периметр чист' : st === 'alert' ? 'Есть подозрительное' : 'Периметр нарушен'}</b><span>${esc(HD.MODE_NOTE[h.mode])}</span></div></div>
         <div class="ar-zones">${HD.ZONES.map(z => `<button class="ar-zone st-${h.zones[z[0]]}" data-aact="hZone" data-v="${z[0]}" title="${esc(z[2])}"><i></i><b>${esc(z[1])}</b><span>${esc(z[2])}</span></button>`).join('')}</div>
         <div class="ar-row">${btn('hCheck', `${ic('dice')} Проверить периметр`, '', 'primary wide')}${st !== 'ok' ? btn('hClear', `${ic('check')} Отбой`, '', 'ghost') : ''}</div>
-        ${evs.length ? `<div class="ar-list">${evs.map(ev => `<div class="ar-ev k-${ev.kind}"><span>${esc(ev.at)} · d20 ${ev.roll}${ev.zone ? ` · ${esc(HM.zoneName(ev.zone))}` : ''}</span><p>${esc(ev.text)}</p>${ev.kind !== 'clean' ? btn('hEvScene', ic('zap'), `data-id="${esc(ev.id)}" title="В следующий ответ"`, 'ico sm') : ''}</div>`).join('')}</div>` : ''}
+        <div class="ar-gridline lv-${GR.G().level}"><span>Защитный контур: <b>«${esc(GR.levelOf(GR.G().level)[1])}»</b></span>${btn('go', `${ic('shield')} Открыть контур`, 'data-app="home" data-id="grid"', st === 'breach' ? 'primary sm' : 'ghost sm')}</div>
+        ${evs.length ? `<div class="ar-list">${evs.map(ev => `<div class="ar-ev k-${ev.kind}"><span>${esc(ev.at)} · d20 ${ev.roll}${ev.zone ? ` · ${esc(HM.zoneName(ev.zone))}` : ''}</span><p>${esc(ev.text)}</p><span class="ar-evb">${ev.kind === 'breach' || ev.kind === 'odd' ? btn('gOpen', ic('shield'), `data-v="${esc(ev.zone)}" title="Контур по этой зоне"`, 'ico sm') : ''}${btn('hEvScene', ic('zap'), `data-id="${esc(ev.id)}" title="В следующий ответ"`, 'ico sm')}</span></div>`).join('')}</div>` : ''}
     </div>
 
     ${sec('Кухня')}
@@ -700,6 +702,74 @@ function homeHtml(e) {
     ${sec('Журнал дома', String(h.log.length))}
     <div class="ar-log">${h.log.slice(0, 25).map(l => `<div class="ar-lg ${esc(l.kind)}"><span>${esc(l.at || '')}</span><p>${esc(l.t)}</p></div>`).join('') || empty('Тихо.')}</div>`;
 }
+
+// ───────────── защитный контур ─────────────
+
+const GZ = {
+    net: '<g class="gz-draw"><path d="M150 40 V12"/><path d="M142 18 a12 12 0 0 1 16 0 M137 12 a19 19 0 0 1 26 0"/></g><rect class="gz-hit" x="128" y="2" width="44" height="38"/>',
+    roof: '<rect class="gz-fill" x="66" y="40" width="208" height="20"/><text x="232" y="54">крыша</text>',
+    windows: '<rect class="gz-hit" x="128" y="64" width="138" height="152"/>' + [0, 1, 2].flatMap(r => [0, 1, 2].map(c => `<rect class="gz-fill" x="${140 + c * 42}" y="${72 + r * 51}" width="22" height="30" rx="2"/>`)).join(''),
+    door: '<rect class="gz-hit" x="98" y="166" width="38" height="54"/><rect class="gz-fill" x="110" y="182" width="16" height="34"/><text x="113" y="178">дверь</text>',
+    stairs: '<rect class="gz-fill" x="70" y="60" width="40" height="220"/>' + [0, 1, 2, 3, 4, 5, 6].map(i => `<path class="gz-line" d="M74 ${268 - i * 30} l32 -18"/>`).join('') + '<text x="74" y="74">подъезд</text>',
+    shop: '<rect class="gz-fill" x="110" y="220" width="160" height="60"/><path class="gz-line" d="M110 232 h160"/>' + [0, 1, 2, 3, 4, 5, 6, 7].map(i => `<path class="gz-awn" d="M${110 + i * 20} 220 v12"/>`).join('') + '<text x="150" y="262">лавка Марко</text>',
+    fire: '<rect class="gz-hit" x="268" y="62" width="40" height="164"/><path class="gz-line" d="M272 80 h30 M272 133 h30 M272 186 h30 M302 80 l-30 53 M272 133 l30 53 M302 186 l-20 34"/><text x="276" y="74">пож. л.</text>',
+    street: '<rect class="gz-fill" x="0" y="282" width="360" height="12"/><text x="6" y="279">улица</text>',
+};
+function buildingSvg(h, g) {
+    const sel = ui.gZone || g.zone || '';
+    const armedIn = (z) => HD.DEVICES.some(d => g.armed[d.id] && d.tier <= g.level && (d.zones.includes(z) || d.zones.includes('all')));
+    return `<svg class="ar-bld lv-${g.level}" viewBox="0 0 360 296" aria-hidden="true">
+        <rect class="bld" x="110" y="60" width="160" height="160"/><path class="bld-fl" d="M110 113 h160 M110 166 h160"/>
+        ${['roof', 'windows', 'stairs', 'shop', 'fire', 'door', 'net', 'street'].map(z => `<g class="gz st-${h.zones[z] || 'ok'}${sel === z ? ' sel' : ''}${armedIn(z) ? ' armed' : ''}" data-aact="gZone" data-v="${z}">${GZ[z]}</g>`).join('')}
+    </svg>`;
+}
+
+function gridHtml(e) {
+    const h = HM.H();
+    const g = GR.G();
+    const L = GR.levelOf(g.level);
+    const zone = ui.gZone || g.zone || Object.entries(h.zones).find(([, v]) => v === 'breach')?.[0] || '';
+    const devs = GR.devicesFor(zone);
+    const breach = HD.ZONES.filter(z => h.zones[z[0]] !== 'ok');
+    const lastEv = h.events.find(ev => ev.kind !== 'clean');
+    const r = g.last;
+    return `${head('Защитный контур')}
+    ${breach.length ? `<div class="ar-alarm${breach.some(z => h.zones[z[0]] === 'breach') ? ' bad' : ''}">${SHIELD(breach.some(z => h.zones[z[0]] === 'breach') ? 'breach' : 'alert')}<div><b>${breach.map(z => esc(z[1])).join(', ')}</b><span>${lastEv ? esc(lastEv.text) : 'тревога выставлена вручную'}</span></div></div>` : '<p class="ar-mute small">Вторжений нет. Контур можно взвести заранее — модель будет знать, что квартира ощетинилась.</p>'}
+    ${buildingSvg(h, g)}
+    <div class="ar-chips">${HD.ZONES.map(z => `<button class="ar-fr zone st-${h.zones[z[0]]}${zone === z[0] ? ' on' : ''}" data-aact="gZone" data-v="${z[0]}">${esc(z[1])}</button>`).join('')}</div>
+
+    ${sec('Нарушитель')}
+    <input class="ar-in wide" data-aset="gIntruder" placeholder="кто лезет: двое в тактике, «Красная Заря», неизвестный…" value="${esc(g.intruder)}">
+    ${seg('gCls', g.cls, HD.INTRUDERS.map(x => [x[0], x[1]]))}
+
+    ${sec('Уровень контура', esc(L[2]))}
+    <div class="ar-levels">${HD.GRID_LEVELS.map(l => `<button class="ar-lvl c-${l[3]}${l[0] === g.level ? ' on' : ''}" data-aact="gLevel" data-v="${l[0]}"><b>${l[0]}</b><span>${esc(l[1])}</span></button>`).join('')}</div>
+    ${g.confirm ? `<div class="ar-ban">${ic('lock')}<span>Арт: «Протокол „Каракурт“. Вы уверены? Под нами Марко, а в спальне — ваша кошка». Нажми «Каракурт» ещё раз.</span></div>` : ''}
+
+    ${sec('Кто дома (свой-чужой)')}
+    <div class="ar-chips">${HD.GRID_WHO.map(([k, l]) => `<button class="ar-fr who${g.who[k] ? ' on' : ''}" data-aact="gWho" data-v="${k}">${esc(l)}</button>`).join('')}</div>
+
+    ${sec(zone ? `Устройства · ${HM.zoneName(zone)}` : 'Все устройства', `${devs.filter(d => g.armed[d.id] && d.tier <= g.level).length} взведено`)}
+    <div class="ar-devs">${devs.map(d => {
+        const bl = GR.blocked(d), wn = GR.warnOf(d);
+        const can = d.tier <= g.level;
+        const on = can && g.armed[d.id];
+        const am = d.ammo == null ? '∞' : `${g.ammo[d.id] ?? d.ammo}/${d.ammo}`;
+        return `<button class="ar-dev t${d.tier}${on ? ' on' : ''}${can ? '' : ' locked'}${bl ? ' blk' : ''}" data-aact="gDev" data-v="${d.id}">
+            <i class="sw"></i><b>${esc(d.name)}</b><em class="tier">${'▮'.repeat(d.tier)}</em><em class="am">${esc(am)}</em>
+            ${bl || wn || !can ? `<small>${esc(bl || (!can ? `нужен уровень ${d.tier}` : wn))}</small>` : ''}</button>`;
+    }).join('')}</div>
+
+    <div class="ar-row">${btn('gFire', `${ic('zap')} Применить${zone ? ` · ${esc(HM.zoneName(zone))}` : ''}`, '', 'primary wide fire')}</div>
+    <div class="ar-row wrap">${btn('gStand', 'Снять контур', '', 'ghost sm')}${btn('gReload', `${ic('refresh')} Перезарядить`, '', 'ghost sm')}</div>
+    <div class="ar-row wrap">${HD.GRID_ACTIONS.map(a => btn('gAct', esc(a[1]), `data-v="${a[0]}" title="${esc(a[2])}"`, 'ghost sm')).join('')}</div>
+
+    ${r ? `${sec('Последнее срабатывание', esc(r.at))}<div class="ar-out out-${r.out === 'down' || r.out === 'back' ? 'win' : r.out === 'held' ? 'part' : 'boom'}"><b>${esc(r.oname)}</b><p>${esc(r.zn)} · «${esc(r.lname)}» · ${esc(r.devices.join(', '))}</p><p>«${esc(r.line)}»</p><span>d20 ${r.roll} + ${r.bonus} ${r.mod >= 0 ? '+' : '−'} ${Math.abs(r.mod)} (${esc(r.cls.toLowerCase())}) = ${r.sum}</span>${r.mishap ? `<p class="ar-mute small">${esc(r.mishap)}</p>` : ''}${r.police ? '<p class="ar-mute small">Соседи звонят в NYPD.</p>' : ''}</div>` : ''}
+    <div class="ar-kv"><div><span>Ущерб</span><p>$${g.dmg.toLocaleString('ru-RU')}${g.dmg ? ' · счёт уйдёт Пеппер' : ''}</p></div><div><span>Шум · лавка Марко</span><p>${g.noise} · ${g.marco ? `задета ×${g.marco}` : 'цела'}</p></div></div>
+    ${sec('Журнал контура', String(g.log.length))}
+    <div class="ar-log">${g.log.map(l => `<div class="ar-lg ${esc(l.kind)}"><span>${esc(l.at)}</span><p>${esc(l.t)}</p></div>`).join('') || empty('Тихо.')}</div>`;
+}
+
 const tog2 = (act, label, on) => `<button class="ar-tog${on ? ' on' : ''}" data-aact="${act}"><i></i><span>${esc(label)}</span></button>`;
 
 // ───────────── Гидра (скрытый слой, Щ.И.Т. 2014) ─────────────
@@ -1064,6 +1134,21 @@ export async function onClick(ev) {
         case 'pAntic': C.toast('info', esc(P.antic())); after(); return;
         case 'pWith': P.setWith(v === '1'); after(); return;
         case 'pAcc': P.setAcc(v); after(); return;
+        case 'gZone': ui.gZone = ui.gZone === v ? '' : v; GR.G().zone = ui.gZone; C.save(); render(); return;
+        case 'gOpen': ui.gZone = v; GR.G().zone = v; C.save(); go('home', 'grid'); return;
+        case 'gCls': GR.G().cls = v; C.save(); render(); return;
+        case 'gLevel': { const r = GR.setLevel(Number(v)); if (r === 'confirm') C.toast('warning', 'Арт: «Протокол „Каракурт“. Нажмите ещё раз, если вы серьёзно».'); after(); return; }
+        case 'gWho': GR.setWho(v); after(); return;
+        case 'gDev': { if (!GR.toggleDev(v)) C.toast('info', 'Сначала подними уровень контура'); after(); return; }
+        case 'gFire': {
+            const r = GR.fire(ui.gZone);
+            if (r.none) { C.toast('warning', r.zone ? `Нечем: в зоне «${esc(HM.zoneName(r.zone))}» ничего не взведено` : 'Контур не взведён'); return; }
+            C.toast(r.out === 'through' ? 'warning' : 'success', `${esc(r.oname)}. Уйдёт в следующий ответ.`);
+            after(); return;
+        }
+        case 'gStand': GR.stand(); after(); return;
+        case 'gReload': GR.reload(); C.toast('info', 'Перезаряжено'); after(); return;
+        case 'gAct': { const t = GR.action(v); C.toast('success', esc(t)); after(); return; }
         case 'homeScene': C.cfg().homeScene = !HM.sceneOn(); C.saveCfg(); render(); return;
         case 'hMode': HM.setMode(v); after(); return;
         case 'hDnd': HM.setDnd(!HM.H().dnd); after(); return;
@@ -1150,6 +1235,7 @@ export function onChange(ev) {
         run(`photo:${who}`, async () => { const path = await C.A.uploadImage(await C.A.fileToJpeg(file, 1000), 'artur_file'); DS.rec(who).photo = path; C.save(); });
         return;
     }
+    if (k === 'gIntruder') { GR.G().intruder = String(v).trim(); C.save(); return; }
     if (k.startsWith('dossier.')) { const d = DS.rec(el.dataset.who); const f = k.slice(8); d[f] = ['stress', 'loyalty'].includes(f) ? C.clamp(v) : v; C.save(); return; }
     switch (k) {
         case 'med.stones': m.med.stones = C.clamp(v); break;

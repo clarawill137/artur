@@ -43,6 +43,8 @@ function scene(key, text) {
     C.armList('home', text, '[Квартира, в этом ответе — мельком, одной-двумя деталями, не перетягивая сцену: ', '.]', 5);
 }
 
+export const note = (key, text) => scene(key, text);
+
 /** Сцена в квартире? По месту из Horae. */
 export function atHome(loc = C.clock().loc) {
     if (!loc) return false;
@@ -289,6 +291,8 @@ export function promptLine() {
     if (h.dnd) p.push('режим «не беспокоить» — Арт молчит, разве что пожар');
     const st = alarm();
     if (st !== 'ok') p.push(`охрана: ${st === 'breach' ? 'НАРУШЕНИЕ' : 'внимание'} — ${HD.ZONES.filter(z => h.zones[z[0]] !== 'ok').map(z => z[1]).join(', ')}`);
+    const gl = Number(h.grid?.level) || 0;
+    if (gl > 0) p.push(`защитный контур взведён: «${(HD.GRID_LEVELS[gl] || [])[1]}» (${(HD.GRID_LEVELS[gl] || [])[2]})`);
     const l = HD.LIGHTS.find(x => x[0] === h.light);
     if (l && h.light !== 'warm') p.push(l[2]);
     const lau = laundry();

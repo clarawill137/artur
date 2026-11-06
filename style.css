@@ -573,6 +573,70 @@
 #ar-app .ar-panel.mini select { margin: 0; }
 #ar-app .ar-panel.arm .ar-card-h span { margin-left: auto; }
 
+/* ═════════ защитный контур ═════════ */
+#ar-app .ar-gridline { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0 6px; padding: 8px 10px; border: 1px solid var(--line2); border-radius: 4px; color: var(--c); font-size: 13px; }
+#ar-app .ar-gridline b { color: var(--hi); }
+#ar-app .ar-gridline.lv-2, #ar-app .ar-gridline.lv-3 { border-color: rgba(255, 207, 92, .6); }
+#ar-app .ar-gridline.lv-4, #ar-app .ar-gridline.lv-5 { border-color: var(--bad); box-shadow: 0 0 14px rgba(255, 95, 109, .2) inset; }
+#ar-app .ar-evb { grid-column: 2; grid-row: 1 / 3; display: flex; gap: 4px; }
+#ar-app .ar-alarm { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; padding: 10px; border: 1px solid rgba(255, 207, 92, .6); border-radius: 4px; background: rgba(255, 207, 92, .06); }
+#ar-app .ar-alarm.bad { border-color: var(--bad); background: rgba(255, 95, 109, .08); animation: ar-alarm 1.6s ease-in-out infinite; }
+@keyframes ar-alarm { 50% { box-shadow: 0 0 24px rgba(255, 95, 109, .35); } }
+#ar-app .ar-alarm .ar-shield { width: 40px; height: 46px; flex: 0 0 40px; }
+#ar-app .ar-alarm b { display: block; color: var(--hi); font-size: 14px; }
+#ar-app .ar-alarm span { color: var(--c); font-size: 13px; }
+#ar-app .ar-bld { display: block; width: 100%; max-width: 380px; margin: 4px auto 6px; overflow: visible; }
+#ar-app .ar-bld .bld, #ar-app .ar-bld .bld-fl { pointer-events: none; }
+#ar-app .ar-bld .bld { fill: rgba(10, 36, 66, .55); stroke: var(--line2); stroke-width: 1.2; }
+#ar-app .ar-bld .bld-fl { stroke: var(--line2); stroke-dasharray: 3 4; fill: none; }
+#ar-app .ar-bld text { fill: var(--mute); font: 9px var(--mono); pointer-events: none; text-transform: uppercase; letter-spacing: .06em; }
+#ar-app .ar-bld .gz { cursor: pointer; }
+#ar-app .ar-bld .gz-hit { fill: transparent; }
+#ar-app .ar-bld .gz-fill { fill: rgba(92, 255, 192, .07); stroke: var(--c); stroke-width: 1; transition: fill .2s, stroke .2s; }
+#ar-app .ar-bld .gz-line, #ar-app .ar-bld .gz-draw path { fill: none; stroke: var(--c); stroke-width: 1.2; }
+#ar-app .ar-bld .gz-awn { stroke: var(--dim); stroke-width: 6; opacity: .25; }
+#ar-app .ar-bld .gz.armed .gz-fill { fill: rgba(255, 207, 92, .14); stroke: var(--warn); stroke-dasharray: 4 3; }
+#ar-app .ar-bld .gz.armed .gz-line, #ar-app .ar-bld .gz.armed .gz-draw path { stroke: var(--warn); }
+#ar-app .ar-bld .gz.st-alert .gz-fill { fill: rgba(255, 207, 92, .25); stroke: var(--warn); }
+#ar-app .ar-bld .gz.st-breach .gz-fill { fill: rgba(255, 95, 109, .35); stroke: var(--bad); stroke-dasharray: none; animation: ar-pulse2 .9s infinite; }
+#ar-app .ar-bld .gz.st-breach .gz-line, #ar-app .ar-bld .gz.st-breach .gz-draw path { stroke: var(--bad); }
+#ar-app .ar-bld .gz.sel .gz-fill { stroke: var(--hi); stroke-width: 2.2; filter: drop-shadow(0 0 6px var(--glow)); }
+#ar-app .ar-bld .gz.sel .gz-line, #ar-app .ar-bld .gz.sel .gz-draw path { stroke: var(--hi); stroke-width: 2; }
+#ar-app .ar-bld.lv-4 .bld, #ar-app .ar-bld.lv-5 .bld { stroke: var(--bad); filter: drop-shadow(0 0 8px rgba(255, 95, 109, .4)); }
+#ar-app .ar-fr.zone.st-alert { border-color: var(--warn); color: var(--warn); }
+#ar-app .ar-fr.zone.st-breach { border-color: var(--bad); color: var(--bad); }
+#ar-app .ar-fr.zone.on, #ar-app .ar-fr.who.on { background: var(--c); color: var(--bg); border-color: var(--c); }
+#ar-app .ar-fr.who:not(.on) { opacity: .55; background: transparent; }
+#ar-app .ar-in.wide { width: 100%; margin-bottom: 6px; }
+#ar-app .ar-levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+#ar-app .ar-lvl { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 4px; border: 1px solid var(--line2); border-radius: 4px; color: var(--dim); }
+#ar-app .ar-lvl b { font: 600 18px var(--mono); color: var(--c); }
+#ar-app .ar-lvl span { font-size: 12px; }
+#ar-app .ar-lvl.c-warn b { color: var(--warn); }
+#ar-app .ar-lvl.c-bad b, #ar-app .ar-lvl.c-kara b { color: var(--bad); }
+#ar-app .ar-lvl.c-kara { border-color: rgba(255, 95, 109, .5); }
+#ar-app .ar-lvl.on { color: var(--hi); background: var(--bg3); border-color: var(--c); box-shadow: 0 0 12px rgba(80, 180, 255, .25); }
+#ar-app .ar-lvl.on.c-warn { border-color: var(--warn); box-shadow: 0 0 12px rgba(255, 207, 92, .3); }
+#ar-app .ar-lvl.on.c-bad, #ar-app .ar-lvl.on.c-kara { border-color: var(--bad); background: rgba(255, 95, 109, .12); box-shadow: 0 0 16px rgba(255, 95, 109, .4); }
+#ar-app .ar-devs { display: flex; flex-direction: column; gap: 5px; }
+#ar-app .ar-dev { display: grid; grid-template-columns: 34px 1fr auto auto; grid-template-rows: auto auto; align-items: center; column-gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg2); text-align: left; }
+#ar-app .ar-dev .sw { grid-row: 1 / 3; position: relative; width: 30px; height: 18px; border: 1px solid var(--line2); border-radius: 10px; }
+#ar-app .ar-dev .sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--mute); transition: transform .15s; }
+#ar-app .ar-dev.on .sw { border-color: var(--warn); background: rgba(255, 207, 92, .15); }
+#ar-app .ar-dev.on .sw::after { transform: translateX(12px); background: var(--warn); box-shadow: 0 0 8px rgba(255, 207, 92, .7); }
+#ar-app .ar-dev.on.t4 .sw, #ar-app .ar-dev.on.t4 { border-color: var(--bad); }
+#ar-app .ar-dev.on.t4 .sw::after { background: var(--bad); box-shadow: 0 0 8px rgba(255, 95, 109, .8); }
+#ar-app .ar-dev b { color: var(--hi); font-size: 13.5px; line-height: 1.25; }
+#ar-app .ar-dev .tier { color: var(--warn); font-style: normal; font-size: 10px; letter-spacing: 1px; }
+#ar-app .ar-dev.t4 .tier { color: var(--bad); }
+#ar-app .ar-dev .am { color: var(--dim); font: normal 11px var(--mono); min-width: 30px; text-align: right; }
+#ar-app .ar-dev small { grid-column: 2 / 5; color: var(--warn); font-size: 11.5px; }
+#ar-app .ar-dev.blk small { color: var(--bad); }
+#ar-app .ar-dev.locked { opacity: .45; }
+#ar-app .ar-btn.fire { background: linear-gradient(180deg, rgba(255, 95, 109, .45), rgba(160, 20, 40, .4)); border-color: var(--bad); color: #fff; box-shadow: 0 0 18px rgba(255, 95, 109, .35); }
+#ar-app .ar-out.out-part { border-color: rgba(255, 207, 92, .6); }
+#ar-app .ar-out.out-part b { color: var(--warn); }
+
 /* крутилка */
 #ar-app .ar-spin { width: 14px; height: 14px; border: 2px solid var(--line2); border-top-color: var(--hi); border-radius: 50%; animation: ar-rot .8s linear infinite; display: inline-block; }
 
