@@ -118,6 +118,26 @@ export function clock() {
     };
 }
 
+// ───────────── Священный таймлайн ─────────────
+// Ядро знает эпоху и дату чата (зажатую в рамки эпохи) — в отмеченных чатах интерфейс Арта берётся по ней, а не по Horae.
+// В чатах других миров ядро Арта выключает (mode('artur') === 'off') — Арт там спит.
+
+function timeline() {
+    try { return window.SacredTimeline?.context?.() || null; } catch { return null; }
+}
+export const asleep = () => { try { return window.SacredTimeline?.mode?.('artur') === 'off'; } catch { return false; } };
+
+/** Дата чата по ядру: YYYY-MM-DD; неполная («2014-04», «1943») — середина периода. null — ядра нет или чат не отмечен. */
+export function timelineDay() {
+    const cx = timeline();
+    if (!cx?.explicit) return null;
+    const d = String(cx.date || cx.era?.from || '');
+    if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.slice(0, 10);
+    if (/^\d{4}-\d{2}$/.test(d)) return `${d}-15`;
+    if (/^\d{4}$/.test(d)) return `${d}-06-15`;
+    return null;
+}
+
 export function eras() {
     const c = cfg();
     return D.ERAS.map(e => ({ ...e, start: c.eraStart[e.id] || e.start, stones: c.stones[e.id] ?? !!e.stones }))
@@ -127,10 +147,10 @@ export function era() {
     const c = cfg();
     const list = eras();
     if (c.eraMode && c.eraMode !== 'auto') return list.find(e => e.id === c.eraMode) || list[list.length - 1];
-    const k = clock();
-    if (!k.d) return list.find(e => e.id === 'aim') || list[list.length - 1];
+    const day = timelineDay() || clock().day;   // ядро главнее Horae: его дата не выходит за рамки эпохи чата
+    if (!day) return list.find(e => e.id === 'aim') || list[list.length - 1];
     let cur = null;
-    for (const e of list) if (e.start <= k.day) cur = e;
+    for (const e of list) if (e.start <= day) cur = e;
     return cur || { ...D.eraById('none'), id: 'none' };
 }
 export const eraLore = (e = era()) => cfg().lore[e.id] ?? D.LORE[e.id] ?? '';

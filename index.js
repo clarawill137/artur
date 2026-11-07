@@ -21,10 +21,10 @@ function register() {
     B.register({
         id: ID,
         init(a) { api = a; C.setApi(a); },
-        prompt: (type) => [C.promptNote(type), HM.promptLine()].filter(Boolean).join('\n'),
-        chron: () => C.chronHook(),
-        afterPost: (i, j) => { toastEvents([...C.afterPost(i, j), ...DS.chronLog(j?.art?.dossier), ...HM.chronHome(j?.art?.home)]); U.renderSoon(); },
-        sceneHtml: () => U.sceneHtml(),
+        prompt: (type) => (C.asleep() ? '' : [C.promptNote(type), HM.promptLine()].filter(Boolean).join('\n')),
+        chron: () => (C.asleep() ? null : C.chronHook()),
+        afterPost: (i, j) => { if (C.asleep()) return; toastEvents([...C.afterPost(i, j), ...DS.chronLog(j?.art?.dossier), ...HM.chronHome(j?.art?.home)]); U.renderSoon(); },
+        sceneHtml: () => (C.asleep() ? '' : U.sceneHtml()),
     });
     return true;
 }
@@ -40,7 +40,7 @@ function addWand() {
     el.className = 'list-group-item flex-container flexGap5 interactable';
     el.tabIndex = 0;
     el.innerHTML = '<div class="fa-solid fa-satellite-dish extensionsMenuExtensionButton"></div><span>А.Р.Т.У.Р.</span>';
-    el.addEventListener('click', () => { try { $('#extensionsMenu').fadeOut(200); } catch { /* */ } U.open(); });
+    el.addEventListener('click', () => { try { $('#extensionsMenu').fadeOut(200); } catch { /* */ } openArt(); });
     menu.append(el);
     return true;
 }
@@ -59,10 +59,22 @@ function settingsDrawer() {
         </div>
     </div>`);
     document.getElementById('ar_on')?.addEventListener('change', function () { C.cfg().on = this.checked; C.saveCfg(); try { api?.updatePrompt?.(); } catch { /* */ } });
-    document.getElementById('ar_open')?.addEventListener('click', () => U.open());
+    document.getElementById('ar_open')?.addEventListener('click', () => openArt());
 }
 
 const APPS = ['lab', 'ops', 'dossier', 'radar', 'med', 'home', 'bases', 'files', 'sharik', 'hydra', 'artur'];
+
+/** Открыть комп — кроме чатов других миров (там Арта нет, его выключил Священный таймлайн). */
+function openArt(app = null) {
+    if (C.asleep()) { window.toastr?.info?.('В этом мире А.Р.Т.У.Р.а нет.', '✦ А.Р.Т.У.Р.'); return; }
+    U.open(app);
+}
+
+/** Кнопка в палочке — только там, где Арт не спит. */
+function syncWand() {
+    const el = document.getElementById('ar-wand');
+    if (el) el.style.display = C.asleep() ? 'none' : '';
+}
 function registerSlash() {
     try {
         const { SlashCommandParser, SlashCommand } = SillyTavern.getContext();
@@ -71,7 +83,7 @@ function registerSlash() {
             helpString: `А.Р.Т.У.Р.: открыть комп Хеди. Можно сразу приложение: /artur ${APPS.join('|')}`,
             returns: 'ничего',
             unnamedArgumentList: [],
-            callback: (_a, v) => { const app = String(v || '').trim().toLowerCase(); U.open(APPS.includes(app) ? app : null); return ''; },
+            callback: (_a, v) => { const app = String(v || '').trim().toLowerCase(); openArt(APPS.includes(app) ? app : null); return ''; },
         }));
     } catch (e) { console.warn('[АРТУР] команда', e); }
 }
@@ -92,7 +104,7 @@ jQuery(async () => {
     try {
         const { eventSource, event_types: E } = SillyTavern.getContext();
         const onAi = (id, type) => {
-            if (!api || type === 'impersonate') return;
+            if (!api || type === 'impersonate' || C.asleep()) return;
             const i = Number(id);
             if (!Number.isFinite(i)) return;
             try { toastEvents(C.afterAiPost(i)); } catch (e) { console.warn('[АРТУР] после ответа', e); }
@@ -103,7 +115,8 @@ jQuery(async () => {
         else if (E.MESSAGE_RECEIVED) eventSource.on(E.MESSAGE_RECEIVED, onAi);
         const endGen = () => { C.clearLive(); try { api?.updatePrompt?.(); } catch { /* */ } };
         for (const ev of [E.GENERATION_ENDED, E.GENERATION_STOPPED]) if (ev) eventSource.on(ev, endGen);
-        eventSource.on(E.CHAT_CHANGED, () => { C.clearLive(); if (U.isOpen()) U.close(); });
+        eventSource.on(E.CHAT_CHANGED, () => { C.clearLive(); if (U.isOpen()) U.close(); syncWand(); });
+        eventSource.on('sacred-timeline:changed', () => { syncWand(); if (C.asleep() && U.isOpen()) U.close(); });
         if (E.APP_READY) eventSource.on(E.APP_READY, () => { addWand(); settingsDrawer(); });
     } catch (e) { console.warn('[АРТУР] события', e); }
 });
