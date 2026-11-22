@@ -56,6 +56,8 @@ export const APPS = {
     lab: ['flask', 'Лаборатория'],
     ops: ['target', 'Операции'],
     hydra: ['eye', 'Гидра'],
+    cipher: ['lock', 'Шифровки'],
+    agents: ['users', 'Агентура'],
     dossier: ['idcard', 'Досье'],
     radar: ['globe', 'Радар'],
     med: ['activity', 'Медблок'],
@@ -68,13 +70,13 @@ export const APPS = {
 
 // Какие приложения есть в эпохе и как они там называются.
 export const ERA_APPS = {
-    aim: { lab: 'Лаборатория', ops: 'Операции', dossier: 'Досье', radar: 'Радар', med: 'Медблок', home: 'Дом', sharik: 'Шарик', bases: 'Базы', files: 'Протоколы и архив', artur: 'А.Р.Т.У.Р.' },
-    shield: { ops: 'Дела Щ.И.Т.а', hydra: 'Гидра', dossier: 'Досье', lab: 'Лаборатория', radar: 'Сводки', med: 'Медблок', bases: 'Объекты', files: 'Архив', sharik: 'Шарик', artur: 'А.Р.Т.У.Р.' },
-    run: { bases: 'Явки', radar: 'Слежка', lab: 'Кухонная лаба', ops: 'Дела', med: 'Аптечка', files: 'Архив', sharik: 'Шарик', artur: 'А.Р.Т.У.Р.' },
+    aim: { lab: 'Лаборатория', ops: 'Операции', dossier: 'Досье', radar: 'Радар', med: 'Медблок', home: 'Дом', sharik: 'Шарик', bases: 'Базы', files: 'Протоколы и архив', artur: 'А.Р.Т.У.Р.', cipher: 'Шифровки', agents: 'Агентура' },
+    shield: { ops: 'Дела Щ.И.Т.а', hydra: 'Гидра', dossier: 'Досье', lab: 'Лаборатория', radar: 'Сводки', med: 'Медблок', bases: 'Объекты', files: 'Архив', sharik: 'Шарик', artur: 'А.Р.Т.У.Р.', cipher: 'Шифровки', agents: 'Агентура' },
+    run: { bases: 'Явки', radar: 'Слежка', lab: 'Кухонная лаба', ops: 'Дела', med: 'Аптечка', files: 'Архив', sharik: 'Шарик', artur: 'А.Р.Т.У.Р.', cipher: 'Шифровки', agents: 'Связные' },
     ship: { ops: 'Курс', bases: 'Корабль', lab: 'Бортовая лаба', radar: 'Миры', med: 'Медотсек', files: 'Бортжурнал', sharik: 'Шарик', artur: 'А.Р.Т.У.Р.' },
-    mad: { ops: 'Сделки', radar: 'Улица', lab: 'Мастерская', bases: 'Склады', dossier: 'Люди', med: 'Медблок', files: 'Тёмная бухгалтерия', artur: 'А.Р.Т.У.Р.' },
+    mad: { ops: 'Сделки', radar: 'Улица', lab: 'Мастерская', bases: 'Склады', dossier: 'Люди', med: 'Медблок', files: 'Тёмная бухгалтерия', artur: 'А.Р.Т.У.Р.', cipher: 'Шифровки', agents: 'Связные' },
     mit: { lab: 'Лаба', radar: 'Новости', med: 'Здоровье', files: 'Заметки', artur: 'А.Р.Т.У.Р.' },
-    ssr: { ops: 'Сводки и операции', dossier: 'Личные дела', radar: 'Разведка', lab: 'Лаборатория СНР', med: 'Лазарет', bases: 'Объекты', files: 'Секретная картотека' },
+    ssr: { ops: 'Сводки и операции', dossier: 'Личные дела', radar: 'Разведка', lab: 'Лаборатория СНР', med: 'Лазарет', bases: 'Объекты', files: 'Секретная картотека', cipher: 'Шифровки', agents: 'Агентура' },
     none: {},
 };
 

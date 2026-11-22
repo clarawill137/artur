@@ -2,6 +2,7 @@
 // инициатива Арта, заметка модели и поле Летописца (через LifeBridge).
 
 import * as D from './data.js';
+import * as SP from './spy.js';
 
 export let A = null;
 export function setApi(a) { A = a; }
@@ -555,6 +556,7 @@ export function promptNote(type) {
         const live = ops().filter(o => o.status === 'live');
         if (live.length) parts.push(`[СНР: идёт операция ${live.map(o => `«${o.name}»`).join(', ')}.]`);
     }
+    try { if (e.id !== 'none') parts.push(...SP.notes(e)); } catch (err) { console.warn('[АРТУР] шпионское', err); }
     for (const s of m.shots) parts.push(s.text);
     if (liveInit) parts.push(`[АРТУР сам, в этом ответе: ${liveInit}. Одна-две реплики его голосом, по делу, не перетягивая сцену. Если сцена интимная — молчит, разве что пожар.]`);
     return parts.join('\n');

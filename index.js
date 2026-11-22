@@ -62,11 +62,11 @@ function settingsDrawer() {
     document.getElementById('ar_open')?.addEventListener('click', () => openArt());
 }
 
-const APPS = ['lab', 'ops', 'dossier', 'radar', 'med', 'home', 'bases', 'files', 'sharik', 'hydra', 'artur'];
+const APPS = ['lab', 'ops', 'dossier', 'radar', 'med', 'home', 'bases', 'files', 'sharik', 'hydra', 'cipher', 'agents', 'artur'];
 
 /** Мост для соседей: Клиника открывает отсюда пульт медблока (Камни, протез, лазарет) и знает, что плитку «Медблок» Арт отдаёт ей сам. */
 globalThis.Artur = {
-    version: '0.5.5',
+    version: '0.6.0',
     klinika: true,
     open: (app = null) => openArt(APPS.includes(app) ? app : null),
     asleep: () => { try { return C.asleep(); } catch { return false; } },

@@ -3,6 +3,7 @@
 
 import * as C from './core.js';
 import * as D from './data.js';
+import * as SP from './spy.js';
 import * as DS from './dossier.js';
 import * as H from './history.js';
 import * as HM from './home.js';
@@ -112,7 +113,7 @@ export function render(fresh = false) {
     const app = document.getElementById('ar-app');
     if (!app) return;
     const e = C.era();
-    app.className = `ar skin-${e.skin}${app.classList.contains('on') ? ' on' : ''}${app.classList.contains('boot') ? ' boot' : ''}${C.cfg().fx ? '' : ' nofx'}${ui.app === 'hydra' ? ' red' : ''}`;
+    app.className = `ar skin-${e.skin}${app.classList.contains('on') ? ' on' : ''}${app.classList.contains('boot') ? ' boot' : ''}${C.cfg().fx ? '' : ' nofx'}${ui.app === 'hydra' || (e.hydra && C.M().spy?.flip) ? ' red' : ''}`;
     app.dataset.era = e.id;
     app.querySelector('.ar-top').innerHTML = topHtml(e);
     const body = app.querySelector('.ar-body');
@@ -156,6 +157,8 @@ function screen(e) {
         case 'sharik': return sharikHtml(e);
         case 'home': return ui.id === 'grid' ? gridHtml(e) : homeHtml(e);
         case 'hydra': return hydraHtml(e);
+        case 'cipher': return SP.cipherHtml(e, { head, sec, btn, ic, empty });
+        case 'agents': return SP.agentsHtml(e, { head, sec, btn, ic, empty });
         case 'artur': return arturHtml(e);
         default: return deskHtml(e);
     }
@@ -795,6 +798,7 @@ function hydraHtml(e) {
         <label class="ar-form one">Легенда «дочь Пирса» · ${C.clamp(h.legend)}%<input type="range" min="0" max="100" step="5" data-aset="hydra.legend" value="${C.clamp(h.legend)}"></label>
         <label class="ar-form one">Доверие Пирса · ${C.clamp(h.pierce)}%<input type="range" min="0" max="100" step="5" data-aset="hydra.pierce" value="${C.clamp(h.pierce)}"></label>
     </div>
+    ${SP.moleHtml({ sec, btn, ic, empty })}
     ${sec('Заметки', btn('addHydra', ic('plus'), '', 'ico sm'))}
     <div class="ar-log">${(h.notes || []).map(n => `<div class="ar-lg"><span>${esc(n.at || '')}</span><p>${esc(n.t)}</p><button class="ar-ico" data-aact="delHydra" data-id="${esc(n.id)}">${ic('x')}</button></div>`).join('') || empty('Чисто.')}</div>`;
 }
@@ -994,6 +998,10 @@ export async function onClick(ev) {
     const v = el.dataset.v;
     const m = C.M();
     const after = () => { C.save(); try { C.A?.updatePrompt?.(); } catch { /* */ } render(); };
+    if (act.startsWith('sp')) {
+        const withBusy = async (b, fn) => { const html = b.innerHTML; b.disabled = true; b.innerHTML = '…'; try { return await fn(); } catch (err) { C.toast('warning', esc(String(err?.message || err))); return null; } finally { if (b.isConnected) { b.disabled = false; b.innerHTML = html; } } };
+        try { if (await SP.act(act, el, { after, form, withBusy })) return; } catch (err) { console.warn('[АРТУР] шпионское', err); C.toast('warning', esc(String(err?.message || err))); return; }
+    }
     switch (act) {
         case 'open': open(el.dataset.app || null, id || null); return;
         case 'close': close(); return;
