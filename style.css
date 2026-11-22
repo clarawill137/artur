@@ -740,3 +740,16 @@
 #ar-app .ar-agent.burned { border-color: rgba(255, 90, 90, .55); opacity: .8; }
 #ar-app .ar-warn { color: #ff8a8a; font-size: 13px; margin: 4px 0; }
 #ar-app .ar-rel { display: inline-block; margin-top: 4px; cursor: pointer; text-decoration: underline dotted; }
+#ar-app .ar-starmap { width: 100%; height: auto; display: block; margin: 6px 0; border-radius: 12px; background: radial-gradient(ellipse at 50% 50%, rgba(80, 120, 200, .12), transparent 70%); border: 1px solid var(--line); }
+#ar-app .ar-starmap .st { fill: rgba(255, 255, 255, .5); }
+#ar-app .ar-starmap .wd { fill: var(--dim); }
+#ar-app .ar-starmap .wd.on { fill: var(--hi); }
+#ar-app .ar-starmap .wn { fill: var(--dim); font-size: 7px; }
+#ar-app .ar-starmap .jp { stroke: var(--c); stroke-dasharray: 3 3; opacity: .6; }
+#ar-app .ar-starmap .me { fill: none; stroke: var(--hi); stroke-width: 1.4; animation: arPing 1.6s ease-in-out infinite; }
+@keyframes arPing { 50% { stroke-opacity: .2; } }
+#ar-app .ar-motion { width: 100%; max-width: 320px; height: auto; display: block; margin: 6px auto; }
+#ar-app .ar-motion .fan { fill: rgba(80, 255, 140, .06); stroke: rgba(80, 255, 140, .35); }
+#ar-app .ar-motion .arc { fill: none; stroke: rgba(80, 255, 140, .25); }
+#ar-app .ar-motion .blip { fill: #7dff9f; filter: drop-shadow(0 0 3px #7dff9f); animation: arPing 1s ease-in-out infinite; }
+#ar-app .ar-chip.bad { border-color: rgba(255, 90, 90, .6) !important; color: #ff9a9a; }
