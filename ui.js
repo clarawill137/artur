@@ -529,6 +529,8 @@ function medHtml(e) {
     const v = C.clamp(m.med.stones);
     return `${head(appLabel('med', e), btn('newPatient', ic('plus'), '', 'ico'))}
     ${histRow('med')}
+    ${C.klinika() ? `<div class="ar-fresh">Врачи, приёмы, медкарты и снимки — в Клинике. Камни, протез Баки и лазарет веду здесь, Клиника их видит.</div>
+    <div class="ar-row">${btn('klinika', `${ic('heart')} Открыть Клинику`, '', 'primary wide')}</div>` : ''}
     <div class="ar-panel">
         <div class="ar-card-h"><b>Хеди</b>${m.med.tremor ? chip('тремор', 'bad') : ''}</div>
         ${e.stones ? `<div class="ar-gauge ${v >= 70 ? 'bad' : v >= 45 ? 'warn' : ''}"><svg viewBox="0 0 120 66"><path class="g0" d="M10 60a50 50 0 0 1 100 0"/><path class="g1" d="M10 60a50 50 0 0 1 100 0" style="stroke-dasharray:${(v / 100) * 157} 157"/></svg><b>${v}%</b><span>нестабильность Камней · ${esc(C.stonesWord(v))}</span></div>
@@ -996,8 +998,12 @@ export async function onClick(ev) {
         case 'open': open(el.dataset.app || null, id || null); return;
         case 'close': close(); return;
         case 'home': go(null); return;
-        case 'go': if (el.dataset.app === 'lab' && C.angarLab()) { try { globalThis.Angar.openLab(id || null); } catch { /* */ } return; } go(el.dataset.app || null, id || null); return;
+        case 'go':
+            if (el.dataset.app === 'lab' && C.angarLab()) { try { globalThis.Angar.openLab(id || null); } catch { /* */ } return; }
+            if (el.dataset.app === 'med' && !id && C.klinika()) { try { globalThis.Klinika.open('today'); } catch { /* */ } return; }
+            go(el.dataset.app || null, id || null); return;
         case 'angarLab': try { globalThis.Angar?.openLab?.(id || null); } catch { /* */ } return;
+        case 'klinika': try { globalThis.Klinika?.open?.(el.dataset.v || 'today'); } catch { /* */ } return;
         case 'closeModal': closeModal(); return;
         case 'zoom': ui.modal = { kind: 'zoom', src: el.dataset.src }; paintModal(); return;
         case 'formAI': {

@@ -64,6 +64,14 @@ function settingsDrawer() {
 
 const APPS = ['lab', 'ops', 'dossier', 'radar', 'med', 'home', 'bases', 'files', 'sharik', 'hydra', 'artur'];
 
+/** Мост для соседей: Клиника открывает отсюда пульт медблока (Камни, протез, лазарет) и знает, что плитку «Медблок» Арт отдаёт ей сам. */
+globalThis.Artur = {
+    version: '0.5.4',
+    klinika: true,
+    open: (app = null) => openArt(APPS.includes(app) ? app : null),
+    asleep: () => { try { return C.asleep(); } catch { return false; } },
+};
+
 /** Открыть комп — кроме чатов других миров (там Арта нет, его выключил Священный таймлайн). */
 function openArt(app = null) {
     if (C.asleep()) { window.toastr?.info?.('В этом мире А.Р.Т.У.Р.а нет.', '✦ А.Р.Т.У.Р.'); return; }

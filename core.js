@@ -241,6 +241,8 @@ export function spendShots(i) {
 export const projects = () => inEra(M().projects);
 /** Мост: лаба переехала в Ангар (он перенёс проекты этого чата и пометил labMoved). Тогда Арт её открывает, а не ведёт. */
 export const angarLab = () => { try { return !!globalThis.Angar?.hasLab?.() && !!M().labMoved; } catch { return false; } };
+/** Мост: врачи, приёмы, медкарты и снимки — в Клинике. Камни, протез Баки и лазарет считает Арт, Клиника их видит. */
+export const klinika = () => { try { return !!globalThis.Klinika?.has?.(); } catch { return false; } };
 /** Проекты для сводок Арта: из Ангара, если лаба там. Поля те же: name, stage, pct. */
 export function labList() {
     if (angarLab()) { try { return (globalThis.Angar.projects() || []).filter(p => !p.dead); } catch { /* */ } }
