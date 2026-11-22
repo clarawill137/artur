@@ -163,8 +163,8 @@ export async function loreFor(name, person, d) {
         for (const t of strong) { const n = body.split(t).length - 1; s += Math.min(n, 6); }
         return s;
     };
-    // карточка персонажа
-    const ch = (c.characters || []).find(x => x?.name && same(x.name, name, person, d));
+    // карточка персонажа — этой эпохи (у Баки их несколько, по одной на эпоху)
+    const ch = await L.cardFor(name, (n) => same(n, name, person, d));
     if (ch) {
         parts.push(`## Карточка «${ch.name}»\n${C.cut(str(ch.description || ch.data?.description), 4500)}${ch.personality ? `\n${C.cut(str(ch.personality), 900)}` : ''}`);
         for (const e of arr(ch.data?.character_book?.entries)) {

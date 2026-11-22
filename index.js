@@ -66,7 +66,7 @@ const APPS = ['lab', 'ops', 'dossier', 'radar', 'med', 'home', 'bases', 'files',
 
 /** Мост для соседей: Клиника открывает отсюда пульт медблока (Камни, протез, лазарет) и знает, что плитку «Медблок» Арт отдаёт ей сам. */
 globalThis.Artur = {
-    version: '0.5.4',
+    version: '0.5.5',
     klinika: true,
     open: (app = null) => openArt(APPS.includes(app) ? app : null),
     asleep: () => { try { return C.asleep(); } catch { return false; } },
