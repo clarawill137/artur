@@ -239,6 +239,13 @@ export function spendShots(i) {
 // ───────────── лаборатория ─────────────
 
 export const projects = () => inEra(M().projects);
+/** Мост: лаба переехала в Ангар (он перенёс проекты этого чата и пометил labMoved). Тогда Арт её открывает, а не ведёт. */
+export const angarLab = () => { try { return !!globalThis.Angar?.hasLab?.() && !!M().labMoved; } catch { return false; } };
+/** Проекты для сводок Арта: из Ангара, если лаба там. Поля те же: name, stage, pct. */
+export function labList() {
+    if (angarLab()) { try { return (globalThis.Angar.projects() || []).filter(p => !p.dead); } catch { /* */ } }
+    return projects();
+}
 export const projectById = (id) => M().projects.find(p => p.id === id) || null;
 
 export function addProject(rec) {
@@ -564,9 +571,10 @@ export function chronHook() {
     if (!c.on || !c.chron || !hasChat()) return null;
     const e = era();
     if (e.id === 'none') return null;
-    const pl = projects().filter(p => p.stage < D.STAGES.length - 1).slice(0, 8).map(p => `${p.id} — ${p.name} (${D.STAGES[p.stage]})`);
+    const moved = angarLab();
+    const pl = moved ? [] : projects().filter(p => p.stage < D.STAGES.length - 1).slice(0, 8).map(p => `${p.id} — ${p.name} (${D.STAGES[p.stage]})`);
     const ol = ops().filter(o => !['done', 'fail'].includes(o.status)).slice(0, 6).map(o => `${o.id} — ${o.name} (${statusName(o.status).toLowerCase()})`);
-    const line = `АРТУР (эпоха: ${e.name}${e.artur ? '' : ', АРТУРа рядом нет — remark и idea пустые'}${e.stones ? '' : ', Камней в Хеди нет — stones 0'}): проекты лаборатории — ${pl.join('; ') || 'нет'}. Операции — ${ol.join('; ') || 'нет'}.${M().sharik.with && e.artur ? ' Шарик с Хеди.' : ''}`;
+    const line = `АРТУР (эпоха: ${e.name}${e.artur ? '' : ', АРТУРа рядом нет — remark и idea пустые'}${e.stones ? '' : ', Камней в Хеди нет — stones 0'}): проекты лаборатории — ${moved ? 'их ведёт Ангар, lab и newlab оставь пустыми' : pl.join('; ') || 'нет'}. Операции — ${ol.join('; ') || 'нет'}.${M().sharik.with && e.artur ? ' Шарик с Хеди.' : ''}`;
     return { key: '"art": {}', rule: CHRON_RULE, input: line, tokens: 260 };
 }
 
@@ -578,13 +586,14 @@ export function afterPost(i, j) {
     if (!a || typeof a !== 'object') return out;
     const e = era();
     const m = M();
-    for (const x of arr(a.lab)) {
+    const moved = angarLab();   // лаба в Ангаре — работу по проектам считает его Летописец
+    for (const x of moved ? [] : arr(a.lab)) {
         const p = projectById(str(x?.id));
         if (!p) continue;
         bump(p, 5);
         labLog(p, str(x.note) || 'работа в лаборатории', 'work', { mes: i });
     }
-    const nl = str(a.newlab);
+    const nl = moved ? '' : str(a.newlab);
     if (nl && !projects().some(p => norm(p.name) === norm(nl))) { addProject({ name: cut(nl, 80), src: 'chron', fresh: true }); out.push(`Новый проект: ${nl}`); }
     for (const x of arr(a.ops)) {
         const o = opById(str(x?.id));
@@ -644,7 +653,7 @@ function situation() {
     const pg = pregLine();
     if (pg) lines.push(`Хеди: ${pg.baby ? pg.text : `беременна, ${pg.text}`}.`);
     if (e.stones) lines.push(`Энергия Камней в Хеди: ${stonesWord()}${m.med.tremor ? ', дрожат руки' : ''}.`);
-    const pl = projects().slice(0, 5).map(p => `${p.name} (${D.STAGES[p.stage]}, ${p.pct}%)`);
+    const pl = labList().slice(0, 5).map(p => `${p.name} (${D.STAGES[p.stage] || ''}, ${p.pct}%)`);
     if (pl.length) lines.push(`Лаборатория: ${pl.join('; ')}.`);
     const ol = ops().filter(o => !['done', 'fail'].includes(o.status)).slice(0, 4).map(o => `${o.name} (${statusName(o.status)})`);
     if (ol.length) lines.push(`Операции: ${ol.join('; ')}.`);

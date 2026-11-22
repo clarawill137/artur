@@ -146,7 +146,7 @@ function screen(e) {
     const apps = C.appsOf(e).map(a => a.id);
     if (ui.app && !apps.includes(ui.app) && ui.app !== 'artur') ui.app = null;
     switch (ui.app) {
-        case 'lab': return ui.id ? projectHtml(e) : labHtml(e);
+        case 'lab': return C.angarLab() ? labBridgeHtml(e) : ui.id ? projectHtml(e) : labHtml(e);
         case 'ops': return ui.id ? opHtml(e) : opsHtml(e);
         case 'dossier': return ui.id ? personHtml(e) : dossierHtml(e);
         case 'radar': return radarHtml(e);
@@ -216,14 +216,14 @@ function statTiles(e) {
     if (appIds.includes('ops')) { const live = C.ops().filter(o => o.status === 'live'); tile(appLabel('ops', e), String(live.length), live.length ? C.cut(live[0].name, 18) : 'не идёт', 'ops', live.length ? 'warn' : ''); }
     if (e.id === 'shield') tile('Легенда', `${m.hydra.legend}%`, Number(m.hydra.legend) < 50 ? 'трещит' : 'держится', 'hydra', Number(m.hydra.legend) < 50 ? 'bad' : '');
     if (appIds.includes('sharik')) { const s = m.sharik; tile('Шарик', `${C.clamp(s.charge)}%`, C.sharikMood(s).mood, 'sharik', s.charge < 15 ? 'bad' : ''); }
-    if (out.length < 4 && appIds.includes('lab')) { const n = C.projects().filter(p => p.stage < 4).length; tile(appLabel('lab', e), String(n), plural(n, 'проект', 'проекта', 'проектов'), 'lab'); }
+    if (out.length < 4 && appIds.includes('lab')) { const n = C.labList().filter(p => p.stage < 4).length; tile(appLabel('lab', e), String(n), plural(n, 'проект', 'проекта', 'проектов'), 'lab'); }
     return out.slice(0, 4);
 }
 
 function tileSub(id, e) {
     const m = C.M();
     switch (id) {
-        case 'lab': { const n = C.projects().length; return n ? `${n} ${plural(n, 'проект', 'проекта', 'проектов')}` : 'пусто'; }
+        case 'lab': { if (C.angarLab()) return 'в Ангаре'; const n = C.projects().length; return n ? `${n} ${plural(n, 'проект', 'проекта', 'проектов')}` : 'пусто'; }
         case 'ops': { const l = C.ops().find(o => o.status === 'live'); if (l) return `идёт: ${C.cut(l.name, 20)}`; const n = C.ops().filter(o => o.status === 'plan').length; return n ? `${n} в плане` : 'пусто'; }
         case 'dossier': { const n = C.dossierList().length; return `${n} ${plural(n, 'дело', 'дела', 'дел')}`; }
         case 'radar': { const n = C.signals().filter(s => !s.seen).length; return n ? `${n} ${plural(n, 'новый', 'новых', 'новых')}` : 'тихо'; }
@@ -256,6 +256,16 @@ function labHtml(e) {
     ${histRow('lab')}
     ${act.length ? `<div class="ar-list">${act.map(card).join('')}</div>` : empty('Проектов нет.', `<br>${btn('newProject', `${ic('plus')} Завести проект`)}`)}
     ${done.length ? `${sec('Готово', String(done.length))}<div class="ar-list">${done.map(card).join('')}</div>` : ''}`;
+}
+
+/** Лаба переехала в Ангар: здесь — окно в неё (Ангар открывается поверх Арта). */
+function labBridgeHtml(e) {
+    const list = C.labList();
+    const act = list.filter(p => p.stage < 4);
+    return `${head(appLabel('lab', e))}
+    <div class="ar-fresh">Лаборатория теперь в Ангаре: проекты, дерево, материалы, полигон, кубик инсайтов и выпуск гаджетов в арсенал. Я открываю её отсюда.</div>
+    <div class="ar-row">${btn('angarLab', `${ic('flask')} Открыть лабораторию`, '', 'primary wide')}</div>
+    ${act.length ? `${sec('В работе', String(act.length))}<div class="ar-list">${act.map(p => `<button class="ar-card" data-aact="angarLab" data-id="${esc(p.id)}"><div class="ar-card-h"><b>${esc(p.name)}</b></div>${stageDots(p)}${bar(p.pct)}</button>`).join('')}</div>` : empty('В работе ничего.')}`;
 }
 
 function projectHtml(e) {
@@ -986,7 +996,8 @@ export async function onClick(ev) {
         case 'open': open(el.dataset.app || null, id || null); return;
         case 'close': close(); return;
         case 'home': go(null); return;
-        case 'go': go(el.dataset.app || null, id || null); return;
+        case 'go': if (el.dataset.app === 'lab' && C.angarLab()) { try { globalThis.Angar.openLab(id || null); } catch { /* */ } return; } go(el.dataset.app || null, id || null); return;
+        case 'angarLab': try { globalThis.Angar?.openLab?.(id || null); } catch { /* */ } return;
         case 'closeModal': closeModal(); return;
         case 'zoom': ui.modal = { kind: 'zoom', src: el.dataset.src }; paintModal(); return;
         case 'formAI': {
