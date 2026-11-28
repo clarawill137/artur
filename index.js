@@ -5,6 +5,8 @@ import * as C from './core.js';
 import * as U from './ui.js';
 import * as DS from './dossier.js';
 import * as HM from './home.js';
+import * as P from './pet.js';
+import { initChibi } from './chibi.js';
 
 const ID = 'ar';
 let api = null;
@@ -54,19 +56,21 @@ function settingsDrawer() {
         <div class="inline-drawer-toggle inline-drawer-header"><b>✦ А.Р.Т.У.Р.</b><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div>
         <div class="inline-drawer-content">
             <label class="checkbox_label"><input type="checkbox" id="ar_on" ${s.on ? 'checked' : ''}> Включено</label>
+            <label class="checkbox_label"><input type="checkbox" id="ar_chibi" ${s.chibi !== false ? 'checked' : ''}> Шарик на экране (в 1940-х — Фриц-Секач)</label>
             <small>Комп Хеди: волшебная палочка или пульт Life → «А.Р.Т.У.Р.», команда <code>/artur</code>. Нужен Life.</small>
             <div class="menu_button" id="ar_open" style="margin-top:6px">Открыть</div>
         </div>
     </div>`);
     document.getElementById('ar_on')?.addEventListener('change', function () { C.cfg().on = this.checked; C.saveCfg(); try { api?.updatePrompt?.(); } catch { /* */ } });
     document.getElementById('ar_open')?.addEventListener('click', () => openArt());
+    document.getElementById('ar_chibi')?.addEventListener('change', function () { C.cfg().chibi = this.checked; C.saveCfg(); const h = document.getElementById('ar-chibi'); if (h && !this.checked) h.style.display = 'none'; });
 }
 
 const APPS = ['lab', 'ops', 'dossier', 'radar', 'med', 'home', 'bases', 'files', 'sharik', 'hydra', 'cipher', 'agents', 'bridge', 'artur'];
 
 /** Мост для соседей: Клиника открывает отсюда пульт медблока (Камни, протез, лазарет) и знает, что плитку «Медблок» Арт отдаёт ей сам. */
 globalThis.Artur = {
-    version: '0.6.1',
+    version: '0.7.0',
     klinika: true,
     open: (app = null) => openArt(APPS.includes(app) ? app : null),
     asleep: () => { try { return C.asleep(); } catch { return false; } },
@@ -106,7 +110,7 @@ jQuery(async () => {
     if (!addWand()) { let t = 0; const iv = setInterval(() => { if (addWand() || ++t > 40) clearInterval(iv); }, 500); }
     let tries = 0;
     const iv = setInterval(() => {
-        if (register()) { clearInterval(iv); console.log('[АРТУР] подключился к Life'); C.loadZ(); return; }
+        if (register()) { clearInterval(iv); console.log('[АРТУР] подключился к Life'); C.loadZ(); try { initChibi({ C, P, getApi: () => api, openArt }); } catch (e) { console.warn('[АРТУР] Шарик на экране', e); } return; }
         if (++tries > 120) { clearInterval(iv); window.toastr?.warning?.('А.Р.Т.У.Р. живёт рядом с Life, а Life не найден или старый (нужен мост LifeBridge — обнови Life).', '✦ А.Р.Т.У.Р.', { timeOut: 12000 }); }
     }, 500);
     try {

@@ -50,6 +50,7 @@ export function toast(kind, msg, title = '✦ А.Р.Т.У.Р.', opts = {}) {
 
 const DEF = {
     on: true,
+    chibi: true,          // 0.7: Шарик на экране (в 1940-х — Фриц-Секач)
     chron: true,          // поле в Летописце
     autoRemark: true,     // приветствие Арта раз в игровой день
     autoScan: false,      // сводка радара раз в игровой день

@@ -753,3 +753,48 @@
 #ar-app .ar-motion .arc { fill: none; stroke: rgba(80, 255, 140, .25); }
 #ar-app .ar-motion .blip { fill: #7dff9f; filter: drop-shadow(0 0 3px #7dff9f); animation: arPing 1s ease-in-out infinite; }
 #ar-app .ar-chip.bad { border-color: rgba(255, 90, 90, .6) !important; color: #ff9a9a; }
+
+/* ✦ 0.7 — Шарик на экране (Фриц-Секач в 1940-х) */
+#ar-chibi { position: fixed; left: 12px; bottom: 84px; width: 58px; height: 58px; z-index: 2900; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .35)); }
+#ar-chibi .ar-ch-sprite { width: 100%; height: 100%; transform-origin: 50% 90%; }
+#ar-chibi .ar-ch-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+#ar-chibi.flip .ar-ch-sprite { transform: scaleX(-1); }
+#ar-chibi[data-mode="idle"] .ar-ch-sprite { animation: arChBob 2.6s ease-in-out infinite; }
+#ar-chibi[data-mode="sit"] .ar-ch-sprite { transform: translateY(3px) scaleY(.94); }
+#ar-chibi.flip[data-mode="sit"] .ar-ch-sprite { transform: translateY(3px) scale(-1, .94); }
+#ar-chibi[data-mode="walk"] .ar-ch-torso, #ar-chibi[data-mode="run"] .ar-ch-torso { animation: arChRoll .5s ease-in-out infinite; transform-origin: 50% 80%; }
+#ar-chibi[data-mode="run"] .ar-ch-torso { animation-duration: .25s; }
+#ar-chibi[data-mode="walk"] .ar-ch-tracks circle, #ar-chibi[data-mode="run"] .ar-ch-tracks circle { animation: arChBlink .3s steps(2) infinite; }
+#ar-chibi[data-mode="drag"] { cursor: grabbing; }
+#ar-chibi[data-mode="drag"] .ar-ch-sprite { animation: arChDangle .35s ease-in-out infinite alternate; }
+#ar-chibi[data-mode="fall"] .ar-ch-sprite { animation: arChLand .42s ease-out; }
+#ar-chibi[data-mode="sleep"] .ar-ch-sprite { animation: arChBreath 3.6s ease-in-out infinite; }
+#ar-chibi.hop .ar-ch-sprite { animation: arChHop .45s ease-out; }
+#ar-chibi .ar-ch-led { animation: arChLed 2.4s ease-in-out infinite; }
+#ar-chibi .ar-ch-led.b { animation-delay: .7s; }
+#ar-chibi[data-emo="perimeter"] .ar-ch-led, #ar-chibi[data-emo="alarm"] .ar-ch-led, #ar-chibi[data-emo="proud"] .ar-ch-led { animation-duration: .5s; }
+#ar-chibi[data-emo="perimeter"] { filter: drop-shadow(0 0 8px rgba(255, 70, 70, .75)); }
+#ar-chibi[data-emo="scared"] .ar-ch-sprite, #ar-chibi[data-emo="perimeter"] .ar-ch-sprite { animation: arChShake .18s linear infinite; }
+#ar-chibi[data-emo="sleep"] .ar-ch-sprite::after { content: ''; }
+#ar-chibi[data-emo="sleep"]::after { content: 'z'; position: absolute; right: -2px; top: -6px; font: italic 600 13px/1 Georgia, serif; color: #9fd8ff; animation: arChZ 2.8s ease-in infinite; }
+#ar-chibi[data-emo="love"]::after { content: '♥'; position: absolute; right: 0; top: -8px; font-size: 13px; color: #ff8fc7; animation: arChZ 2.4s ease-in infinite; }
+#ar-chibi .ar-ch-spark { animation: arChBlink .25s steps(2) infinite; }
+#ar-chibi .ar-ch-steam { animation: arChSteam 1.8s ease-in-out infinite; }
+#ar-chibi.dog .ar-ch-tail { transform-origin: 45px 50px; animation: arChWag .45s ease-in-out infinite alternate; }
+#ar-chibi.dog[data-emo="sleep"] .ar-ch-tail, #ar-chibi.dog[data-emo="off"] .ar-ch-tail { animation: none; }
+#ar-chibi .ar-ch-heart { animation: arChZ 2.4s ease-in infinite; }
+#ar-chibi .ar-ch-bubble { position: absolute; bottom: 100%; left: 50%; transform: translate(-50%, 4px); white-space: nowrap; padding: 3px 8px; border-radius: 10px; background: rgba(10, 24, 40, .92); color: #bdf3ff; border: 1px solid rgba(127, 230, 255, .45); font: 600 11.5px/1.2 system-ui, sans-serif; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+#ar-chibi .ar-ch-bubble.on { opacity: 1; transform: translate(-50%, -4px); }
+@keyframes arChBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+@keyframes arChRoll { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes arChBlink { 50% { opacity: .35; } }
+@keyframes arChDangle { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+@keyframes arChLand { 0% { transform: translateY(-6px) scaleY(1.05); } 60% { transform: translateY(2px) scale(1.08, .88); } 100% { transform: none; } }
+@keyframes arChBreath { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(.96); } }
+@keyframes arChHop { 0% { transform: none; } 40% { transform: translateY(-9px); } 100% { transform: none; } }
+@keyframes arChLed { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes arChShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-1.4px); } 75% { transform: translateX(1.4px); } }
+@keyframes arChZ { 0% { opacity: 0; transform: translate(0, 0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(6px, -14px); } }
+@keyframes arChSteam { 0%, 100% { opacity: .2; } 50% { opacity: .8; } }
+@keyframes arChWag { from { transform: rotate(-12deg); } to { transform: rotate(14deg); } }
+@media (prefers-reduced-motion: reduce) { #ar-chibi *, #ar-chibi::after { animation: none !important; } }
